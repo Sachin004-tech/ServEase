@@ -43,11 +43,6 @@ def customer_signup():
     return jsonify({"message":"Signup successful" , "user_id": user_id}),201
 
 
-from flask import Blueprint, request, jsonify
-from werkzeug.security import check_password_hash
-from config import connection
-
-customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/login', methods=['POST'])
 def customer_login():
