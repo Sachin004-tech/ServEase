@@ -5,7 +5,7 @@ from config import connection
 
 professional_bp = Blueprint("professional", __name__, url_prefix="/professional")
 
-ALLOWED_EXTENSIONS = {"pdf", "doc", "decx"}
+ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
 
 def allowed_file(filename):
