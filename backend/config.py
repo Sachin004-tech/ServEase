@@ -5,6 +5,6 @@ def connection():
         host ="localhost",
         user="root",
         password="Yash@2150",
-        database="ServEase"
+        database="servease_db"
 
     )
