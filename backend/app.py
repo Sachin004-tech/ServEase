@@ -10,7 +10,7 @@ import os
 
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/customer/*": {"origins": "http://localhost:5173"}})    #Changes here
 
 app.config["SECRET_KEY"] = "your_super_secret_key_123456"
 
@@ -20,4 +20,4 @@ app.register_blueprint(professional_bp, url_prefix="/professional")
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)

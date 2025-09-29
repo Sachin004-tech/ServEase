@@ -5,7 +5,7 @@ from config import connection
 
 customer_bp = Blueprint('customer',__name__)
 
-@customer_bp.route('/signup', methods=['POST'])
+@customer_bp.route('/signup', methods=['POST'],)
 def customer_signup():
     data = request.get_json()
     name = data.get("name")
@@ -79,3 +79,7 @@ def customer_login():
         }), 200
     else:
         return jsonify({"message": "Invalid email or password"}), 401
+
+
+
+
