@@ -1,8 +1,25 @@
-// import { ShipWheelIcon } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
+import RoleSelection from "../components/RoleSelection";
+import { useForm } from "react-hook-form"
 
 const LoginPage = () => {
+
+  const [showModal, setShowModal] = useState(false);
+
+   const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm()
+
+  function onSubmit(data){
+    console.log("Trying",data)
+  }
+
   return (
+    <> 
     <div className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
       <div className="flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         
@@ -10,18 +27,19 @@ const LoginPage = () => {
         <div className="w-full lg:w-1/2 p-6 sm:p-10 flex flex-col">
           {/* LOGO */}
           <div className="mb-6 flex items-center gap-2">
-            {/* <ShipWheelIcon className="w-9 h-9 text-indigo-600" /> */}
             <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-pink-500 tracking-wider">
               ServEase
             </span>
           </div>
 
           {/* ERROR MESSAGE EXAMPLE (static) */}
-          {/* <div className="mb-4 rounded-lg bg-red-100 border border-red-400 text-red-700 px-4 py-3">
-            Invalid credentials
+          {/* <div ref={errRef} className={`${errMsg ? "errmsg" : "offscreen"} mb-4 rounded-lg bg-red-100 border border-red-400 text-red-700 px-4 py-3`}>
+            {errMsg}
           </div> */}
+          {/* <div ref={errRef} className={`${seerror ? "errmsg" : "offscreen"} mb-4 rounded-lg bg-red-100 border border-red-400 text-red-700 px-4 py-3`}>Invalid Credential</div> */}
 
-          <form className="w-full">
+        
+          <form onSubmit={handleSubmit(onSubmit)} className="w-full">
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Welcome Back</h2>
@@ -37,10 +55,10 @@ const LoginPage = () => {
                 </label>
                 <input
                   type="email"
+                  {...register("email")}
                   placeholder="hello@example.com"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
+                />{errors.email && <p>{errors.email.message}</p>}
               </div>
 
               {/* PASSWORD */}
@@ -50,15 +68,18 @@ const LoginPage = () => {
                 </label>
                 <input
                   type="password"
+                  {...register("password")}
                   placeholder="••••••••"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
+                  
                 />
               </div>
 
               {/* BUTTON */}
               <button
                 type="submit"
+                disabled= {isSubmitting}
+                value={isSubmitting ? "Submitting": "Something Wrong"}
                 className="w-full py-2 px-4 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
               >
                 Sign In
@@ -68,9 +89,15 @@ const LoginPage = () => {
               <div className="text-center mt-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Don&apos;t have an account?{" "}
-                  <Link to="/signup" className="text-indigo-600 hover:underline text-xl">
+                  <span
+                  onClick={() => setShowModal(true)}
+                  className="text-indigo-600 hover:underline cursor-pointer text-xl"
+                >
+                  Create one
+                </span>
+                  {/* <Link to="/signup" className="text-indigo-600 hover:underline text-xl">
                     Create one
-                  </Link>
+                  </Link> */}
                 </p>
               </div>
             </div>
@@ -100,7 +127,9 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
+       <RoleSelection show={showModal} onClose={() => setShowModal(false)} />
     </div>
+   </>
   );
 };
 

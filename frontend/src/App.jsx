@@ -2,7 +2,8 @@ import React from "react";
 import { Routes,Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Navbar from "./layouts/Navbar";
-import SignUp from "./pages/SignUp";
+import SignUpCustomer from "./pages/SignUpCustomer";
+import SignUpProfessional from "./pages/SignUpProfessional";
 
 
 function App() {
@@ -10,7 +11,8 @@ function App() {
     <Navbar/>
    <Routes>
     <Route path="/login" element={<LoginPage />} />
-    <Route path="/signup" element={<SignUp />} />
+    <Route path="/signupcustomer" element={<SignUpCustomer />} />
+    <Route path="/signupprofessional" element={<SignUpProfessional />} />
    
    </Routes>
   </>

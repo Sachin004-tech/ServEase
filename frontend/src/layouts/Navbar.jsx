@@ -9,7 +9,7 @@ const Navbar = () => {
       {/* Logo */}
       <div className="flex items-center gap-2 cursor-pointer">
         <img
-          src="/ServEase.png" // replace with your logo
+          src="/ServEase.png" 
           alt="Household Services"
           className="w-10 h-10"
         />
