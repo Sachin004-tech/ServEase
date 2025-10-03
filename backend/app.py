@@ -10,7 +10,7 @@ import os
 
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origin="http://localhost:173")
 
 app.config["SECRET_KEY"] = "your_super_secret_key_123456"
 
