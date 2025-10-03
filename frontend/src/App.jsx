@@ -1,13 +1,23 @@
 import React from "react";
-import Demo from "./components/Demo";
+import { Routes,Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import Navbar from "./layouts/Navbar";
+import SignUpCustomer from "./pages/SignUpCustomer";
+import SignUpProfessional from "./pages/SignUpProfessional";
+import HomePage from "./pages/HomePage";
+
 
 function App() {
-  return (
-    <div>
-      <h1>React + Flask Demo</h1>
-      <Demo />
-    </div>
-  );
+  return <>
+    <Navbar/>
+   <Routes>
+    <Route path="/" element={<HomePage />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/signupcustomer" element={<SignUpCustomer />} />
+    <Route path="/signupprofessional" element={<SignUpProfessional />} />
+   
+   </Routes>
+  </>
 }
 
 export default App;
