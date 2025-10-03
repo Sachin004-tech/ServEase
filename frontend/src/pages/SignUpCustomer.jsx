@@ -1,34 +1,34 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { signup } from "../api/auth";
+import { CustomerSignup } from "../api/auth";
 
 const SignUpCustomer = () => {
-
   const {
     register,
     handleSubmit,
-    formState: { errors},
-  } = useForm()
+    formState: { errors },
+  } = useForm();
 
- const onSubmit = async (data) => {
-  try {
-    const result = await signup(data);  // send data to backend
-    if (result.success) {
-      alert("Signup successful!");
-    } else {
-      alert(result.message || "Email is already registered!");
+  const onSubmit = async (data) => {
+    try {
+      const result = await CustomerSignup(data); // send data to backend
+      if (result.success) {
+        alert("Signup successful!");
+      } else {
+        alert(result.message || "Email is already registered!");
+      }
+    } catch (error) {
+      console.error("Signup error:", error.response?.data || error.message);
+      alert(
+        error.response?.data?.message || "Signup failed. Please try again."
+      );
     }
-  } catch (error) {
-    console.error("Signup error:", error);
-    alert("Signup failed. Please try again.");
-  }
-}
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <div className="flex flex-col lg:flex-row w-full max-w-5xl bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-        
         {/* LEFT SIDE FORM */}
         <div className="w-full lg:w-1/2 p-8 sm:p-10 flex flex-col">
           {/* LOGO */}
@@ -55,7 +55,7 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="text"
-                 {...register("name", { required: true })}
+                {...register("name", { required: true })}
                 placeholder="John Doe"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -68,7 +68,7 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="email"
-                 {...register("email", { required: true })}
+                {...register("email", { required: true })}
                 placeholder="hello@example.com"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -81,11 +81,13 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="password"
-                 {...register("password", { required: true })}
+                {...register("password", { required: true })}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              {errors.password && <span style={{ color: "red" }}>*Password* is mandatory</span>}
+              {errors.password && (
+                <span style={{ color: "red" }}>*Password* is mandatory</span>
+              )}
               {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Password must be at least 6 characters long
               </p> */}
@@ -98,7 +100,7 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="tel"
-                 {...register("phone", { required: true })}
+                {...register("phone", { required: true })}
                 placeholder="Enter Your Number"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -111,7 +113,7 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="text"
-                 {...register("address", { required: true })}
+                {...register("address", { required: true })}
                 placeholder="Enter Your Address"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />

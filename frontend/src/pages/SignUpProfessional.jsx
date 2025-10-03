@@ -1,7 +1,31 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React from "react";
+import { Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { ProfessionalSignup } from "../api/auth";
 
 const SignUpProfessional = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  const onSubmit = async (data) => {
+    try {
+      const result = await ProfessionalSignup(data); // send data to backend
+      if (result.success) {
+        alert("Signup successful!");
+      } else {
+        alert(result.message || "Email is already registered!");
+      }
+    } catch (error) {
+      console.error("Signup error:", error.response?.data || error.message);
+      alert(
+        error.response?.data?.message || "Signup failed. Please try again."
+      );
+    }
+  };
+
   return (
     <div className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
       <div className="border border-gray-200 dark:border-gray-700 flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
@@ -14,7 +38,7 @@ const SignUpProfessional = () => {
             </span>
           </div>
 
-          <form className="w-full">
+          <form className="w-full" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -32,6 +56,7 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="text"
+                  {...register("name", { required: true })}
                   placeholder="John Doe"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -44,6 +69,7 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="email"
+                  {...register("email", { required: true })}
                   placeholder="hello@example.com"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -56,10 +82,13 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="password"
+                  {...register("password", { required: true })}
                   placeholder="••••••••"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-               {errors.password && <span style={{ color: "red" }}>*Password* is mandatory</span>}
+                {errors.password && (
+                  <span style={{ color: "red" }}>*Password* is mandatory</span>
+                )}
               </div>
 
               {/* Skills */}
@@ -69,6 +98,7 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="text"
+                  {...register("skill", { required: true })}
                   placeholder="Enter your Skills"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -80,7 +110,8 @@ const SignUpProfessional = () => {
                   Experience
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  {...register("experience", { required: true })}
                   placeholder="Enter your Skills"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -152,7 +183,7 @@ const SignUpProfessional = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SignUpProfessional
+export default SignUpProfessional;
