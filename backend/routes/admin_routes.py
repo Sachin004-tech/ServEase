@@ -31,7 +31,7 @@ def admin_login():
         return jsonify({"message":"Invalid password"}),401
 
     return jsonify({
-        "message":f"Welcome Admin{admin['username']}",
+        "message":f"Welcome Admin {admin['username']}",
         "admin_id": admin["admin_id"]
     }),200
 
