@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router-dom";
 import RoleSelection from "../components/RoleSelection";
 import { useForm } from "react-hook-form";
 import { AdminLogin } from "../api/auth";
 
 const LoginPage = () => {
+  const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false);
 
   const {
@@ -19,7 +20,15 @@ const LoginPage = () => {
     try {
       const res = await AdminLogin(data);
       localStorage.setItem("adminToken", res.token);
+      localStorage.setItem("admin_id", res.admin_id);
       alert(res.message);
+
+      if(res.admin_id){
+        navigate("/admin/admindashboard");
+      }
+      else{
+       navigate("/");
+      }
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
     }
