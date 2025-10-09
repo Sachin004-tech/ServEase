@@ -68,11 +68,11 @@ def professional_login():
     if professional:
         # Verify password using bcrypt
         if bcrypt.checkpw(password.encode('utf-8'), professional["password"].encode('utf-8')):
-            # Generate JWT token (2 hours expiry)
+            # Generate JWT token (1 hours expiry)
             token = jwt.encode(
                 {
                     "professional_id": professional["professional_id"],
-                    "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+                    "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
                 },
                 SECRET_KEY,
                 algorithm="HS256"
