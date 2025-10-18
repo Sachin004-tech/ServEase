@@ -6,10 +6,17 @@ import SignUpCustomer from "./pages/SignUpCustomer";
 import SignUpProfessional from "./pages/SignUpProfessional";
 import HomePage from "./pages/HomePage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { useSelector } from "react-redux";
+import { themes } from "./theme/Theme";
 
 function App() {
+
+  const currentTheme = useSelector((state) => state.theme.currentTheme); // Redux se theme
+
   return <>
+  <ThemeProvider theme={themes[currentTheme]}>
+      <CssBaseline /> {/* Reset + background & text colors */}
     <Navbar/>
    <Routes>
     <Route path="/" element={<HomePage />} />
@@ -21,6 +28,7 @@ function App() {
     <Route path="/admin/admindashboard" element={<AdminDashboard/>}/>
    
    </Routes>
+    </ThemeProvider>
   </>
 }
 

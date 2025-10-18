@@ -2,8 +2,15 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ProfessionalSignup } from "../api/auth";
+import { useDispatch, useSelector } from "react-redux";
+import { professionalUserSignup } from "../redux/feature/auth/authSlice";
+import { unwrapResult } from "@reduxjs/toolkit";
 
 const SignUpProfessional = () => {
+
+  const dispatch = useDispatch();
+  const { loading, error, user } = useSelector((state) => state.auth);
+
   const {
     register,
     handleSubmit,
@@ -12,16 +19,28 @@ const SignUpProfessional = () => {
 
   const onSubmit = async (data) => {
     try {
-      const result = await ProfessionalSignup(data); // send data to backend
-      if (result.success) {
+      //  Dispatching Redux thunk action
+      // This sends user data to Redux → then to API → backend
+      const resultAction = await dispatch(
+        professionalUserSignup({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          skill: data.skill,
+          experience: data.experience,
+        })
+      ) 
+      const res = unwrapResult(resultAction)         // unwrapResult extracts the actual payload returned from the thunk
+      console.log(res) 
+      if (res.success) {
         alert("Signup successful!");
       } else {
-        alert(result.message || "Email is already registered!");
+        alert(res.message || "Email is already registered!");
       }
     } catch (error) {
-      console.error("Signup error:", error.response?.data || error.message);
+      console.error("Signup error:", error);
       alert(
-        error.response?.data?.message || "Signup failed. Please try again."
+        error.message || "Signup failed. Please try again."
       );
     }
   };

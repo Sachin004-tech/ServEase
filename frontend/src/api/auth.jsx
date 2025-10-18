@@ -29,6 +29,6 @@ export const AdminLogin = async (loginData) => {
     return response.data;
   } catch (error) {
     console.error("Admin login error:", error.response?.data || error.message);
-    throw error;
+    throw error;  // Re-throw for Redux thunk to handle
   }
 };

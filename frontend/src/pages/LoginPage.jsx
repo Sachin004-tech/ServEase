@@ -3,10 +3,15 @@ import { useNavigate } from "react-router-dom";
 import RoleSelection from "../components/RoleSelection";
 import { useForm } from "react-hook-form";
 import { AdminLogin } from "../api/auth";
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser } from '../redux/feature/auth/authSlice';
+import { unwrapResult } from "@reduxjs/toolkit";
 
 const LoginPage = () => {
   const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false);
+  const dispatch = useDispatch();
+  const { loading, error, user } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -18,8 +23,13 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     console.log(data)
     try {
-      const res = await AdminLogin(data);
-      localStorage.setItem("adminToken", res.token);
+      const resultAction = await dispatch(
+        loginUser({username: data.username, password: data.password})
+      );
+      
+      const res = unwrapResult(resultAction)
+      console.log(res)
+      // localStorage.setItem("adminToken", res.token);
       localStorage.setItem("admin_id", res.admin_id);
       alert(res.message);
 
@@ -30,8 +40,9 @@ const LoginPage = () => {
        navigate("/");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      alert(err || "Login failed");
     }
+    // dispatch(loginUser({ email, password }))
   };
 
   return (

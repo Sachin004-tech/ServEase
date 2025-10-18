@@ -1,9 +1,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { CustomerSignup } from "../api/auth";
+// import { CustomerSignup } from "../api/auth";
+import { useDispatch, useSelector } from "react-redux";            //Redux se dispatch (action trigger karne ke liye) aur useSelector (state access karne ke liye)
+import { customerUserSignup } from "../redux/feature/auth/authSlice"; //customerUserSignup – Redux thunk action jo signup request bhejta hai
+import { unwrapResult } from "@reduxjs/toolkit"; //unwrapResult – Redux Toolkit helper, jo async thunk ka final result nikalta hai
 
 const SignUpCustomer = () => {
+  const dispatch = useDispatch();
+  const { loading, error, user } = useSelector((state) => state.auth); //Redux store se authentication-related data nikal rahe hain (state.auth se)
+
   const {
     register,
     handleSubmit,
@@ -11,17 +17,30 @@ const SignUpCustomer = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    try {
-      const result = await CustomerSignup(data); // send data to backend
-      if (result.success) {
+    try {   //Redux thunk ko call kar rahe hain jo API ke through backend ko request bhejta hai
+      const resultAction = await dispatch(
+        customerUserSignup({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          address: data.address,
+        })
+      );
+      //  unwrapResult() se thunk ka final response nikal rahe hain
+      // agar thunk fail ho to ye error throw karega (try/catch ke andar)
+      const res = unwrapResult(resultAction);
+      console.log(res);
+
+      if (res.success) {
         alert("Signup successful!");
       } else {
-        alert(result.message || "Email is already registered!");
+        alert(res.message || "Email is already registered!");
       }
     } catch (error) {
-      console.error("Signup error:", error.response?.data || error.message);
+      console.error("Signup error:", error);
       alert(
-        error.response?.data?.message || "Signup failed. Please try again."
+        error.message || "Signup failed. Please try again."
       );
     }
   };
