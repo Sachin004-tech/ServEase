@@ -147,4 +147,131 @@ def delete_user(user_id):
 
 
 
-#--------------------------------------------All Professionls are here------------------------------------------------------
+#--------------------------------------------All Professionls------------------------------------------------------
+@admin_bp.route("/managed_professionals", methods=["GET"]) # get all professional with status (pending , approved , reject )
+def managed_professionals():
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+                 SELECT professional_id , name , email , phone , skill , experience 
+                 document_path , status , created_at FROM professionals  ORDER BY created_at DESC 
+        """)
+        professionals = cursor.fetchall()
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({
+        "message": "All professionals fetched successfully",
+        "total_professionals": len(professionals),
+        "professionals": professionals
+    }), 200
+
+#---------------------------------------------------add search section-------------------------------------------------
+
+@admin_bp.route("/managed_professionals/<int:professional_id>/approve", methods=["PUT"])
+def approve_professional(professional_id):
+    conn = connection()
+    cursor=conn.cursor()
+
+    try:
+        cursor.execute("UPDATE professionals SET status = 'approved' WHERE professional_id = %s", (professional_id,))
+        conn.commit()
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({"message": f"Professional {professional_id} approved successfully"}), 200
+@admin_bp.route("/managed_professionals/<int:professional_id>/reject", methods=["PUT"])
+def reject_professional(professional_id):
+    """
+    Reject a professional registration
+    """
+    conn = connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE professionals SET status = 'rejected' WHERE professional_id = %s", (professional_id,))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({"message": f"Professional {professional_id} rejected successfully"}), 200
+
+
+@admin_bp.route("/managed_professionals/<int:professional_id>/document", methods=["GET"])
+def view_professional_document(professional_id):
+    """
+    Get the document path for a professional (CV or proof)
+    """
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT document_path FROM professionals WHERE professional_id = %s", (professional_id,))
+        result = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
+    if not result or not result.get("document_path"):
+        return jsonify({"message": "No document found"}), 404
+
+    return jsonify({
+        "message": f"Document found for professional {professional_id}",
+        "document_path": result["document_path"]
+    }), 200
+@admin_bp.route("/managed_professionals/<int:professional_id>/details", methods=["GET"])
+def professional_details(professional_id):
+    """
+    View specialization, average rating, total bookings for a professional
+    """
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Professional Info
+        cursor.execute("""
+            SELECT name, email, phone, skill, experience, status
+            FROM professionals WHERE professional_id = %s
+        """, (professional_id,))
+        professional = cursor.fetchone()
+
+        if not professional:
+            return jsonify({"message": "Professional not found"}), 404
+
+        # Average Rating
+        cursor.execute("""
+            SELECT ROUND(AVG(rating), 1) AS avg_rating 
+            FROM ratings_reviews WHERE professional_id = %s
+        """, (professional_id,))
+        rating = cursor.fetchone().get("avg_rating") or 0
+
+        # Total Bookings
+        cursor.execute("""
+            SELECT COUNT(*) AS total_bookings 
+            FROM bookings WHERE professional_id = %s
+        """, (professional_id,))
+        total = cursor.fetchone().get("total_bookings")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    professional["average_rating"] = rating
+    professional["total_bookings"] = total
+
+    return jsonify({
+        "message": f"Professional {professional_id} details fetched successfully",
+        "details": professional
+    }), 200
+
+#---------------------------- Delete the unverified professionals or pending request-----------------------------
+
+
+#--------------------------------------------ALL bookings control--------------------------------------------------
+
+#------------------------------------------------All Services------------------------------------------------------
+#------------------------------------------------ALL Payments--------------------------------------------

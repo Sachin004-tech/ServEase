@@ -20,5 +20,7 @@ app.register_blueprint(customer_bp, url_prefix="/customer")
 app.register_blueprint(professional_bp, url_prefix="/professional")
 
 
+#print(app.url_map)
+
 if __name__ == '__main__':
     app.run(debug=True)
