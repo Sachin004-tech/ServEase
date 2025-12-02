@@ -9,6 +9,7 @@ SECRET_KEY = "YOUR_SECRET_KEY"
 
 customer_bp = Blueprint('customer', __name__)
 
+# ------------------ SIGNUP ------------------
 @customer_bp.route('/signup', methods=['POST'])
 def customer_signup():
     data = request.get_json()
@@ -97,3 +98,6 @@ def customer_login():
         }), 200
     else:
         return jsonify({"message": "Invalid email or password"}), 401
+
+
+

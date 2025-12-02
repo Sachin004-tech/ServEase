@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, Blueprint
 import bcrypt
 import jwt
@@ -10,7 +9,7 @@ SECRET_KEY = "YOUR_SECRET_KEY"
 
 professional_bp = Blueprint("professional", __name__, url_prefix="/professional")
 
-# -------------------- SIGNUP --------------------
+# -------------------- SIGNUP -------------
 @professional_bp.route("/signup", methods=["POST"])
 def professional_signup():
 
@@ -69,11 +68,11 @@ def professional_login():
     if professional:
         # Verify password using bcrypt
         if bcrypt.checkpw(password.encode('utf-8'), professional["password"].encode('utf-8')):
-            # Generate JWT token (2 hours expiry)
+            # Generate JWT token (1 hours expiry)
             token = jwt.encode(
                 {
                     "professional_id": professional["professional_id"],
-                    "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+                    "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
                 },
                 SECRET_KEY,
                 algorithm="HS256"
@@ -96,17 +95,11 @@ def professional_login():
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
-# -------------------- PROTECTED ROUTE EXAMPLE --------------------
+# -------------------- PROTECTED ROUTE EXAMPLE ------
 from functools import wraps
 from flask import request
 
 def token_required(f):
-    """
-    Decorator to protect routes with JWT token.
-    - Checks Authorization header
-    - Decodes token
-    - Passes professional_id to route
-    """
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')
@@ -123,11 +116,7 @@ def token_required(f):
 @professional_bp.route("/profile", methods=["GET"])
 @token_required
 def professional_profile(professional_id):
-    """
-    Example protected route:
-    - Returns logged-in professional's profile
-    - Requires valid JWT token
-    """
+
     conn = connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT professional_id,name,email,phone,skill,experience,status,document_path FROM professionals WHERE professional_id=%s", (professional_id,))
