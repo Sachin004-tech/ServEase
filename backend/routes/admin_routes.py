@@ -36,10 +36,84 @@ def admin_login():
     }),200
 
 #--------------------------------------------------Admin Dashboard------------------------------------------------------
-# @admin_bp.route("/admin_dashboard")
-# def admin_dashboard():
-#     graph and pi chart
-#     return jsonify({"message":"This is admin dashboard"})
+@admin_bp.route("/admin_dashboard", methods=["GET"])
+def admin_dashboard():
+    conn= connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT COUNT(*) AS total_users FROM users")
+        total_users = cursor.fetchone()["total_users"]
+
+        cursor.execute("SELECT COUNT(*) AS total_professionals FROM professionals")
+        total_professionals = cursor.fetchone()["total_professionals"]
+
+        cursor.execute("SELECT COUNT(*) AS total_bookings FROM bookings")
+        total_bookings = cursor.fetchone()["total_bookings"]
+
+        cursor.execute("SELECT COUNT(*) AS total_services FROM services")
+        total_services = cursor.fetchone()["total_services"]
+
+        cursor.execute("SELECT COUNT(*) AS total_payments FROM payments WHERE payment_status='paid'")
+        total_payments = cursor.fetchone()["total_payments"]
+
+        cursor.execute("SELECT IFNULL(SUM(amount),0) AS total_revenue FROM payments WHERE payment_status='paid'")
+        total_revenue = cursor.fetchone()["total_revenue"]
+
+
+
+
+
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({
+
+        "message" : "Admin Dashboard fetched successfully",
+        "total_users" : total_users,
+        "total_professionals" : total_professionals,
+        "total_bookings" : total_bookings,
+        "total_services": total_services,
+        "total_payments": total_payments,
+        "total_revenue": float(total_revenue)
+
+        # return for charts and graph
+
+
+    }),200
+
+@admin_bp.route("/admin_chart_data", methods=["GET"])
+def admin_chart_data():
+    conn= connection()
+    cursor = conn.cursor()
+
+    query ="""SELECT MONTH(booking_date) AS MONTH , COUNT(*)
+    FROM bookings 
+    GROUP BY MONTH(booking_date)
+    ORDER BY MONTH(booking_date)
+    
+    """
+    cursor.execute(query)
+    data = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+
+    labels = [f"Month {row[0]}" for row in data ]
+    values = [row[1] for row in data]
+
+    return jsonify({
+        "labels":labels,
+        "values":values
+    })
+
+
+
+
+
 
 #all registered users
 
