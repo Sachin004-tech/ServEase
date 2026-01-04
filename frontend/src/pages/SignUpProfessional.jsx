@@ -46,7 +46,7 @@ const SignUpProfessional = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
       <div className="border border-gray-200 dark:border-gray-700 flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         {/* LEFT SIDE FORM */}
         <div className="w-full lg:w-1/2 p-6 sm:p-10 flex flex-col">

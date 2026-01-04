@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Modal from "../components/modal/Modal";
 import RoleSelection from "../components/RoleSelection";
 import { useForm } from "react-hook-form";
 import { AdminLogin } from "../api/auth";
-import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../redux/feature/auth/authSlice';
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
-
+import { toast } from "react-toastify";
 const LoginPage = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth);
@@ -21,23 +22,22 @@ const LoginPage = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    console.log(data)
+    console.log(data);
     try {
       const resultAction = await dispatch(
-        loginUser({username: data.username, password: data.password})
+        loginUser({ username: data.username, password: data.password })   
       );
-      
-      const res = unwrapResult(resultAction)
-      console.log(res)
+
+      const res = unwrapResult(resultAction);
+      console.log(res);
       // localStorage.setItem("adminToken", res.token);
       localStorage.setItem("admin_id", res.admin_id);
-      alert(res.message);
+      toast.success(res.message)
 
-      if(res.admin_id){
+      if (res.admin_id) {
         navigate("/admin/admindashboard");
-      }
-      else{
-       navigate("/");
+      } else {
+        navigate("/");
       }
     } catch (err) {
       alert(err || "Login failed");
@@ -155,7 +155,15 @@ const LoginPage = () => {
             </div>
           </div>
         </div>
-        <RoleSelection show={showModal} onClose={() => setShowModal(false)} />
+        {/* <RoleSelection show={showModal} onClose={() => setShowModal(false)} /> */}
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title="Select Your Role"
+          size="md"
+        >
+          <RoleSelection onClose={() => setShowModal(false)} />
+        </Modal>
       </div>
     </>
   );

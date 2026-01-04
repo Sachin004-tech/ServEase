@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { useSelector } from "react-redux";
 import { themes } from "./theme/Theme";
+import { ToastContainer } from "react-toastify";
 
 function App() {
 
@@ -28,6 +29,18 @@ function App() {
     <Route path="/admin/admindashboard" element={<AdminDashboard/>}/>
    
    </Routes>
+   <ToastContainer
+              position="top-right"
+              autoClose={5000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="dark"
+            />
     </ThemeProvider>
   </>
 }
