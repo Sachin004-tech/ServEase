@@ -1,188 +1,110 @@
-// import React from "react";
-// import { useDispatch, useSelector } from "react-redux";
-// import { setTheme } from "../redux/feature/theme/themeSlice";
-// import { NavLink, useNavigate } from "react-router-dom";
-
-// const Navbar = () => {
-//   const dispatch = useDispatch();
-//   const currentTheme = useSelector((state) => state.theme.currentTheme);
-//   const navigate = useNavigate();
-
-//    const toggleTheme = () => {
-//     const newTheme = currentTheme === "light" ? "dark" : "light";
-//     dispatch(setTheme(newTheme));
-//   };
-
-//   return (
-//     <nav className="flex items-center justify-between py-4 px-6 border-b border-gray-200 shadow-sm">
-//       {/* Logo */}
-//       <div className="flex items-center gap-2 cursor-pointer">
-//         <img
-//           src="/ServEase.png"
-//           alt="Household Services"
-//           className="w-10 h-10"
-//         />
-//         <h1 onClick={()=>navigate("/")} className="text-xl font-bold text-primary">ServEase</h1>
-//       </div>
-
-//       {/* Desktop Menu */}
-//       <ul className="hidden md:flex items-center gap-8 font-medium text-gray-700">
-//         <NavLink to="/">
-//           <li className="hover:text-primary transition">Beauty</li>
-//         </NavLink>
-//         <NavLink to="/services">
-//           <li className="hover:text-primary transition">Services</li>
-//         </NavLink>
-//         <NavLink to="/about">
-//           <li className="hover:text-primary transition">About Us</li>
-//         </NavLink>
-//         <NavLink to="/contact">
-//           <li className="hover:text-primary transition">Contact</li>
-//         </NavLink>
-//       </ul>
-
-//       {/* Search Box */}
-//       <div className="hidden md:flex items-center w-1/3 relative">
-//         {/* Search Icon */}
-//         <span className="absolute left-3 text-gray-400">
-//           <img className="h-5 w-5" src="./search_icon.png" alt="" />
-//         </span>
-//         <input
-//           type="text"
-//           placeholder="Search for services (Plumber, Cleaning, Electrician...)"
-//           className="w-full border border-gray-300 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-//         />
-//       </div>
-
-//       {/* Right Section */}
-//       <div className="flex items-center gap-4">
-//         <button onClick={()=> navigate("/login")}
-//           type="button"
-//           className="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
-//         >
-//             Login
-//         </button>
-//         <button className="hidden md:block bg-primary text-white px-6 py-2 rounded-full hover:bg-primary/90 transition">
-//           Book Now
-//         </button>
-
-//          {/* Single Theme Toggle Button */}
-//         <button
-//           onClick={toggleTheme}
-//           className="px-4 py-1 rounded-full text-sm bg-gray-200 text-gray-700 border border-gray-300 hover:opacity-80 transition"
-//         >
-//           {currentTheme === "light" ? "Dark" : "Light"}
-//         </button>
-
-//         {/* Mobile Menu Icon */}
-//         <button className="md:hidden">
-//           <img
-//             src="/menu.svg" // your mobile menu icon
-//             alt="Menu"
-//             className="w-7 h-7"
-//           />
-//         </button>
-//       </div>
-//     </nav>
-//   );
-// };
-
-// export default Navbar;
-
-import React from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { setTheme } from "../redux/feature/theme/themeSlice";
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
-import Brightness4Icon from "@mui/icons-material/Brightness4"; // Moon
-import Brightness7Icon from "@mui/icons-material/Brightness7"; // Sun
+import SearchIcon from "@mui/icons-material/Search";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import MenuIcon from "@mui/icons-material/Menu";
+import { Badge, IconButton } from "@mui/material";
 
 const Navbar = () => {
-  const dispatch = useDispatch();
-  const currentTheme = useSelector((state) => state.theme.currentTheme);
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    const newTheme = currentTheme === "light" ? "dark" : "light";
-    dispatch(setTheme(newTheme));
-  };
+  // Assuming cart is in redux or local state. For now, we'll placeholder it or use local state if not in redux.
+  // Looking at HomePage.jsx, it seems to be local state there. 
+  // If we want it to persist across pages, it should be in Redux.
+  // For now, I'll just keep it at 0 or try to select it from store if it exists.
+  const cart = useSelector((state) => state.cart?.items || []);
 
   return (
-    <nav className="flex items-center justify-between py-4 px-6 bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
+    <nav className="sticky top-0 z-50 flex items-center justify-between py-3 px-4 md:px-8 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 transition-all">
       {/* Logo */}
-      <div className="flex items-center gap-2 cursor-pointer">
-        <img src="/ServEase.png" alt="ServEase" className="w-10 h-10" />
-        <h1
-          onClick={() => navigate("/")}
-          className="text-2xl font-bold hover:text-primary/80 transition"
-  style={{ color: "#fff" }}
-        >
+      <div
+        className="flex items-center gap-2 cursor-pointer group"
+        onClick={() => navigate("/")}
+      >
+        <div className="p-1.5 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+          <img src="/ServEase.png" alt="ServEase" className="w-8 h-8" />
+        </div>
+        <h1 className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tracking-tight">
           ServEase
         </h1>
       </div>
 
-      {/* Desktop Menu */}
-      <ul className="hidden md:flex items-center gap-8 font-medium text-gray-700 dark:text-gray-200">
-        <NavLink to="/">
-          <li className="hover:text-primary transition">Beauty</li>
-        </NavLink>
-        <NavLink to="/services">
-          <li className="hover:text-primary transition">Services</li>
-        </NavLink>
-        <NavLink to="/about">
-          <li className="hover:text-primary transition">About Us</li>
-        </NavLink>
-        <NavLink to="/contact">
-          <li className="hover:text-primary transition">Contact</li>
-        </NavLink>
-      </ul>
+      {/* Separate Search & Location (Desktop) */}
+      <div className="hidden lg:flex items-center gap-4 flex-1 max-w-3xl mx-8">
+        {/* Location Input */}
+        <div className="flex items-center gap-2 flex-[0.35] bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm">
+          <LocationOnIcon className="text-black h-5 w-5" />
+          <input
+            type="text"
+            placeholder="Select Location..."
+            className="w-full bg-transparent border-none text-sm font-medium text-black focus:outline-none placeholder:text-black"
+          />
+        </div>
 
-      {/* Search Box */}
-      <div className="hidden md:flex items-center w-1/3 relative">
-        <span className="absolute left-3 text-gray-400">
-          <img className="h-5 w-5" src="./search_icon.png" alt="Search" />
-        </span>
-        <input
-          type="text"
-          placeholder="Search for services (Plumber, Cleaning...)"
-          className="w-full border border-gray-300 dark:border-gray-600 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:text-white"
-        />
+        {/* Search Input */}
+        <div className="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm">
+          <SearchIcon className="text-black h-5 w-5" />
+          <input
+            type="text"
+            placeholder="Search for services (Plumber, Salon...)"
+            className="w-full bg-transparent border-none text-sm font-medium text-black focus:outline-none placeholder:text-black"
+          />
+        </div>
       </div>
 
-      {/* Right Section */}
-      <div className="flex items-center gap-3">
-        {/* Login Button */}
-        <button
-          onClick={() => navigate("/login")}
-          className="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 transition shadow-md"
-        >
-          Login
-        </button>
+      {/* Desktop Menu & Right Actions */}
+      <div className="flex items-center gap-2 md:gap-6">
+        {/* Desktop NavLinks */}
+        <ul className="hidden xl:flex items-center gap-6 font-semibold text-gray-600">
+          <NavLink
+            to="/"
+            className={({ isActive }) => `hover:text-primary transition-colors ${isActive ? 'text-primary' : ''}`}
+          >
+            About us
+          </NavLink>
+          <NavLink
+            to="/services"
+            className={({ isActive }) => `hover:text-primary transition-colors ${isActive ? 'text-primary' : ''}`}
+          >
+            Services
+          </NavLink>
+        </ul>
 
-        {/* Book Now */}
-        <button className="hidden md:block bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full transition shadow-md">
-          Book Now
-        </button>
+        <div className="flex items-center gap-1 md:gap-3">
+          {/* Cart */}
+          <IconButton
+            aria-label="cart"
+            className="text-gray-700 hover:text-primary transition-colors"
+            onClick={() => navigate("/cart")}
+          >
+            <Badge badgeContent={cart.length} color="primary">
+              <ShoppingCartIcon />
+            </Badge>
+          </IconButton>
 
-        {/* Single Theme Toggle Button */}
-        <button
-          onClick={toggleTheme}
-          className="flex items-center gap-1 px-4 py-2 rounded-full text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:opacity-80 transition shadow-sm"
-        >
-          {currentTheme === "light" ? (
-            <Brightness4Icon className="w-5 h-5" />
-          ) : (
-            <Brightness7Icon className="w-5 h-5" />
-          )}
-          {currentTheme === "light" ? "Dark" : "Light"}
-        </button>
+          {/* Login Button */}
+          <button
+            onClick={() => navigate("/login")}
+            className="hidden sm:block px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm rounded-full transition shadow-md hover:shadow-lg active:scale-95"
+          >
+            Login
+          </button>
 
-        {/* Mobile Menu Icon */}
-        <button className="md:hidden">
-          <img src="/menu.svg" alt="Menu" className="w-7 h-7" />
-        </button>
+          {/* Book Now */}
+          <button className="hidden md:block bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-full transition shadow-md hover:shadow-lg active:scale-95">
+            Book Now
+          </button>
+
+          {/* Mobile Menu Icon */}
+          <IconButton className="xl:hidden p-2 text-gray-700">
+            <MenuIcon />
+          </IconButton>
+        </div>
       </div>
     </nav>
   );
 };
 
 export default Navbar;
+

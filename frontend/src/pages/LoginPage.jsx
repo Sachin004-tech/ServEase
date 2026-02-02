@@ -26,7 +26,7 @@ const LoginPage = () => {
     try {
       const resultAction = await dispatch(
         loginUser({ username: data.username, password: data.password })   
-      );
+      ); 
 
       const res = unwrapResult(resultAction);
       console.log(res);
