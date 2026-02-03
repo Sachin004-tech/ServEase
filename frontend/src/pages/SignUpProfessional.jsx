@@ -5,6 +5,8 @@ import { ProfessionalSignup } from "../api/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { professionalUserSignup } from "../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { professionalSignupSchema } from "../utils/schema/professionalSignupSchema";
 
 const SignUpProfessional = () => {
 
@@ -15,7 +17,9 @@ const SignUpProfessional = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    resolver: zodResolver(professionalSignupSchema),
+  });
 
   const onSubmit = async (data) => {
     try {
@@ -29,9 +33,9 @@ const SignUpProfessional = () => {
           skill: data.skill,
           experience: data.experience,
         })
-      ) 
+      )
       const res = unwrapResult(resultAction)         // unwrapResult extracts the actual payload returned from the thunk
-      console.log(res) 
+      console.log(res)
       if (res.success) {
         alert("Signup successful!");
       } else {
@@ -46,7 +50,7 @@ const SignUpProfessional = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50">
       <div className="border border-gray-200 dark:border-gray-700 flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
         {/* LEFT SIDE FORM */}
         <div className="w-full lg:w-1/2 p-6 sm:p-10 flex flex-col">
@@ -75,10 +79,13 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="text"
-                  {...register("name", { required: true })}
+                  {...register("name")}
                   placeholder="John Doe"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full px-4 py-2 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                 />
+                {errors.name && (
+                  <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+                )}
               </div>
 
               {/* EMAIL */}
@@ -88,10 +95,13 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="email"
-                  {...register("email", { required: true })}
+                  {...register("email")}
                   placeholder="hello@example.com"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full px-4 py-2 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                 />
+                {errors.email && (
+                  <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                )}
               </div>
 
               {/* PASSWORD */}
@@ -101,12 +111,12 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="password"
-                  {...register("password", { required: true })}
+                  {...register("password")}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full px-4 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                 />
                 {errors.password && (
-                  <span style={{ color: "red" }}>*Password* is mandatory</span>
+                  <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
                 )}
               </div>
 
@@ -117,10 +127,13 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="text"
-                  {...register("skill", { required: true })}
+                  {...register("skill")}
                   placeholder="Enter your Skills"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full px-4 py-2 rounded-lg border ${errors.skill ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                 />
+                {errors.skill && (
+                  <p className="text-xs text-red-500 mt-1">{errors.skill.message}</p>
+                )}
               </div>
 
               {/* Experience */}
@@ -130,16 +143,20 @@ const SignUpProfessional = () => {
                 </label>
                 <input
                   type="tel"
-                  {...register("experience", { required: true })}
-                  placeholder="Enter your Skills"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  {...register("experience")}
+                  placeholder="Enter your Experience"
+                  className={`w-full px-4 py-2 rounded-lg border ${errors.experience ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                 />
+                {errors.experience && (
+                  <p className="text-xs text-red-500 mt-1">{errors.experience.message}</p>
+                )}
               </div>
 
               {/* TERMS CHECKBOX */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
+                  {...register("terms")}
                   className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                 />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -153,6 +170,9 @@ const SignUpProfessional = () => {
                   </span>
                 </span>
               </div>
+              {errors.terms && (
+                <p className="text-xs text-red-500 -mt-4">{errors.terms.message}</p>
+              )}
 
               {/* SIGNUP BUTTON */}
               <button

@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";            //Redux se dispatch (action trigger karne ke liye) aur useSelector (state access karne ke liye)
 import { customerUserSignup } from "../redux/feature/auth/authSlice"; //customerUserSignup – Redux thunk action jo signup request bhejta hai
 import { unwrapResult } from "@reduxjs/toolkit"; //unwrapResult – Redux Toolkit helper, jo async thunk ka final result nikalta hai
+import { zodResolver } from "@hookform/resolvers/zod";
+import { customerSignupSchema } from "../utils/schema/customerSignupSchema";
 
 const SignUpCustomer = () => {
   const dispatch = useDispatch();
@@ -14,7 +16,9 @@ const SignUpCustomer = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    resolver: zodResolver(customerSignupSchema),
+  });
 
   const onSubmit = async (data) => {
     try {   //Redux thunk ko call kar rahe hain jo API ke through backend ko request bhejta hai
@@ -46,7 +50,7 @@ const SignUpCustomer = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="flex flex-col lg:flex-row w-full max-w-5xl bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         {/* LEFT SIDE FORM */}
         <div className="w-full lg:w-1/2 p-8 sm:p-10 flex flex-col">
@@ -74,10 +78,13 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="text"
-                {...register("name", { required: true })}
+                {...register("name")}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-3 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               />
+              {errors.name && (
+                <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+              )}
             </div>
 
             {/* EMAIL */}
@@ -87,10 +94,13 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="email"
-                {...register("email", { required: true })}
+                {...register("email")}
                 placeholder="hello@example.com"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               />
+              {errors.email && (
+                <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+              )}
             </div>
 
             {/* PASSWORD */}
@@ -100,12 +110,12 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="password"
-                {...register("password", { required: true })}
+                {...register("password")}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               />
               {errors.password && (
-                <span style={{ color: "red" }}>*Password* is mandatory</span>
+                <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
               )}
               {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Password must be at least 6 characters long
@@ -119,10 +129,13 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="tel"
-                {...register("phone", { required: true })}
+                {...register("phone")}
                 placeholder="Enter Your Number"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-3 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               />
+              {errors.phone && (
+                <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
+              )}
             </div>
 
             {/* ADDRESS */}
@@ -132,16 +145,20 @@ const SignUpCustomer = () => {
               </label>
               <input
                 type="text"
-                {...register("address", { required: true })}
+                {...register("address")}
                 placeholder="Enter Your Address"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-3 rounded-lg border ${errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               />
+              {errors.address && (
+                <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>
+              )}
             </div>
 
             {/* TERMS CHECKBOX */}
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
+                {...register("terms")}
                 className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -155,6 +172,9 @@ const SignUpCustomer = () => {
                 </span>
               </span>
             </div>
+            {errors.terms && (
+              <p className="text-xs text-red-500 -mt-4">{errors.terms.message}</p>
+            )}
 
             {/* SIGNUP BUTTON */}
             <button

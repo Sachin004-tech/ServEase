@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Modal from "../components/modal/Modal";
-import RoleSelection from "../components/RoleSelection";
+import Modal from "./modal/Modal";
+import RoleSelection from "./RoleSelection";
 import { useForm } from "react-hook-form";
 import { AdminLogin } from "../api/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
 import { toast } from "react-toastify";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema } from "../utils/schema/loginSchema";
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
@@ -17,22 +20,26 @@ const LoginPage = () => {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm();
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   const onSubmit = async (data) => {
     console.log(data);
     try {
       const resultAction = await dispatch(
-        loginUser({ username: data.username, password: data.password })   
-      ); 
+        loginUser({ email: data.email, password: data.password })
+      );
 
       const res = unwrapResult(resultAction);
       console.log(res);
-      // localStorage.setItem("adminToken", res.token);
       localStorage.setItem("admin_id", res.admin_id);
-      toast.success(res.message)
+      toast.success(res.message);
 
       if (res.admin_id) {
         navigate("/admin/admindashboard");
@@ -40,14 +47,13 @@ const LoginPage = () => {
         navigate("/");
       }
     } catch (err) {
-      alert(err || "Login failed");
+      toast.error(err.message || "Login failed");
     }
-    // dispatch(loginUser({ email, password }))
   };
 
   return (
     <>
-      <div className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
+      <div className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50">
         <div className="flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           {/* LOGIN FORM SECTION */}
           <div className="w-full lg:w-1/2 p-6 sm:p-10 flex flex-col">
@@ -57,12 +63,6 @@ const LoginPage = () => {
                 ServEase
               </span>
             </div>
-
-            {/* ERROR MESSAGE EXAMPLE (static) */}
-            {/* <div ref={errRef} className={`${errMsg ? "errmsg" : "offscreen"} mb-4 rounded-lg bg-red-100 border border-red-400 text-red-700 px-4 py-3`}>
-            {errMsg}
-          </div> */}
-            {/* <div ref={errRef} className={`${seerror ? "errmsg" : "offscreen"} mb-4 rounded-lg bg-red-100 border border-red-400 text-red-700 px-4 py-3`}>Invalid Credential</div> */}
 
             <form onSubmit={handleSubmit(onSubmit)} className="w-full">
               <div className="space-y-6">
@@ -75,18 +75,23 @@ const LoginPage = () => {
                   </p>
                 </div>
 
-                {/* UserName */}
+                {/* EMAIL */}
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    UserName
+                    Email
                   </label>
                   <input
-                    type="text"
-                    {...register("username")}
-                    placeholder="Enter UserName"
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    type="email"
+                    {...register("email")}
+                    placeholder="Enter Email"
+                    className={`w-full px-4 py-2 rounded-lg border ${errors.email ? "border-red-500" : "border-gray-300"
+                      } dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
-                  {errors.username && <p>{errors.username.message}</p>}
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* PASSWORD */}
@@ -98,18 +103,23 @@ const LoginPage = () => {
                     type="password"
                     {...register("password")}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full px-4 py-2 rounded-lg border ${errors.password ? "border-red-500" : "border-gray-300"
+                      } dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
+                  {errors.password && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* BUTTON */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  value={isSubmitting ? "Submitting" : "Something Wrong"}
-                  className="w-full py-2 px-4 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                  className="w-full py-2 px-4 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign In
+                  {isSubmitting ? "Signing In..." : "Sign In"}
                 </button>
 
                 {/* SIGNUP LINK */}
