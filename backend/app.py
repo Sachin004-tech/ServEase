@@ -11,13 +11,18 @@ import os
 
 app = Flask(__name__)
 
-CORS(app, origin="http://localhost:173")
+CORS(app, origin="http://localhost:5173")
 
 app.config["SECRET_KEY"] = "your_super_secret_key_123456"
 
 app.register_blueprint(admin_bp, url_prefix="/admin")
 app.register_blueprint(customer_bp, url_prefix="/customer")
 app.register_blueprint(professional_bp, url_prefix="/professional")
+
+
+#print(app.url_map)
+
+
 
 
 if __name__ == '__main__':
