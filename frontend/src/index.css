@@ -6,3 +6,11 @@
   --color-secondary: #dc004e;
   --color-accent: #7c4dff;
 }
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
