@@ -13,6 +13,7 @@ from config import SECRET_KEY
 
 
 professional_bp = Blueprint("professional", __name__, url_prefix="/professional")
+
 UPLOAD_FOLDER = "static/doc"
 
 
@@ -111,7 +112,6 @@ ServEase Team
     finally:
         cursor.close()
         conn.close()
-
 
 @professional_bp.route("/login", methods=["POST"])
 def professional_login():

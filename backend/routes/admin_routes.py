@@ -36,9 +36,8 @@ def admin_login():
         "admin_id": admin["admin_id"]
     }),200
 
-@admin_bp.route("/professionals/pending", methods=["GET"])
+@admin_bp.route("/professional/pending", methods=["GET"])   # admin can see the pending requests of professionals
 def pending_professionals():
-
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -61,7 +60,7 @@ def pending_professionals():
         cursor.close()
         conn.close()
 
-@admin_bp.route("/professional/approve/<int:pro_id>", methods=["PUT"])
+@admin_bp.route("/professional/approve/<int:pro_id>", methods=["PUT"]) # approved the request
 def approve_professional(pro_id):
 
     conn = connection()
@@ -111,7 +110,7 @@ ServEase Team
         cursor.close()
         conn.close()
 
-@admin_bp.route("/professional/reject/<int:pro_id>", methods=["PUT"])
+@admin_bp.route("/professional/reject/<int:pro_id>", methods=["PUT"])# reject the request
 def reject_professional(pro_id):
 
     conn = connection()
