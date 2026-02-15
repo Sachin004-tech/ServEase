@@ -29,48 +29,43 @@ const _nav = [
   },
   {
     component: CNavTitle,
-    name: 'Theme',
+    name: 'Kyc Status',
   },
   {
     component: CNavItem,
-    name: 'Colors',
+    name: 'Customer KYC',
     to: '/theme/colors',
     icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
-    name: 'Typography',
+    name: 'Professional KYC',
     to: '/theme/typography',
     icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
   },
   {
     component: CNavTitle,
-    name: 'Components',
+    name: 'User Management',
   },
   {
     component: CNavGroup,
-    name: 'Base',
+    name: 'Customer',
     to: '/base',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
-        name: 'Accordion',
+        name: 'All Customers',
         to: '/base/accordion',
       },
       {
         component: CNavItem,
-        name: 'Breadcrumb',
+        name: 'Active / Blocked',
         to: '/base/breadcrumbs',
       },
       {
         component: CNavItem,
-        name: (
-          <React.Fragment>
-            {'Calendar'}
-            <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
-          </React.Fragment>
-        ),
+        name: "Wallet Balance",
         href: 'https://coreui.io/react/docs/components/calendar/',
         badge: {
           color: 'danger',
@@ -79,17 +74,17 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Cards',
+        name: 'Booking History',
         to: '/base/cards',
       },
       {
         component: CNavItem,
-        name: 'Carousel',
+        name: 'Complaints',
         to: '/base/carousels',
       },
       {
         component: CNavItem,
-        name: 'Collapse',
+        name: 'Complaints resolved',
         to: '/base/collapses',
       },
       {
@@ -183,51 +178,66 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: 'Buttons',
+    name: 'Professionals',
     to: '/buttons',
     icon: <CIcon icon={cilCursor} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
-        name: 'Buttons',
+        name: 'All Professionals',
         to: '/buttons/buttons',
       },
       {
         component: CNavItem,
-        name: 'Buttons groups',
+        name: 'Active / Blocked',
         to: '/buttons/button-groups',
       },
       {
         component: CNavItem,
-        name: 'Dropdowns',
+        name: 'Wallet Balance',
         to: '/buttons/dropdowns',
       },
       {
         component: CNavItem,
-        name: (
-          <React.Fragment>
-            {'Loading Button'}
-            <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
-          </React.Fragment>
-        ),
+        name: 'Booking History',
         href: 'https://coreui.io/react/docs/components/loading-button/',
         badge: {
           color: 'danger',
           text: 'PRO',
         },
       },
+      {
+        component: CNavItem,
+        name: 'Complaints',
+        to: '/buttons/dropdowns',
+      },
+      {
+        component: CNavItem,
+        name: 'Complaints resolved',
+        to: '/buttons/dropdowns',
+      },
+      {
+        component: CNavItem,
+        name: 'On bench',
+        to: '/buttons/dropdowns',
+      },
+      {
+        component: CNavItem,
+        name: 'Off bench',
+        to: '/buttons/dropdowns',
+      },
     ],
   },
   {
     component: CNavGroup,
-    name: 'Forms',
+    name: 'Bookings',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
         name: (
           <React.Fragment>
-            {'Autocomplete'}
+            {'All Bookings'}
             <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
           </React.Fragment>
         ),
@@ -239,14 +249,14 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Checks & Radios',
+        name: 'Upcoming',
         to: '/forms/checks-radios',
       },
       {
         component: CNavItem,
         name: (
           <React.Fragment>
-            {'Date Picker'}
+            {'Completed'}
             <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
           </React.Fragment>
         ),
@@ -258,7 +268,7 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Date Range Picker',
+        name: 'Cancelled',
         href: 'https://coreui.io/react/docs/forms/date-range-picker/',
         badge: {
           color: 'danger',
@@ -267,24 +277,24 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: 'Floating Labels',
+        name: 'Refunded',
         to: '/forms/floating-labels',
       },
       {
         component: CNavItem,
-        name: 'Form Control',
+        name: 'Disputes',
         to: '/forms/form-control',
       },
       {
         component: CNavItem,
-        name: 'Input Group',
+        name: 'Disputes resolved',
         to: '/forms/input-group',
       },
       {
         component: CNavItem,
         name: (
           <React.Fragment>
-            {'Multi Select'}
+            {'Wallet Transactions'}
             <CIcon icon={cilExternalLink} size="sm" className="ms-2" />
           </React.Fragment>
         ),
@@ -408,22 +418,37 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: 'Icons',
-    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+    name: 'Payments & Transactions',
+    // icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
     items: [
       {
         component: CNavItem,
-        name: 'CoreUI Free',
+        name: 'All Transactions',
         to: '/icons/coreui-icons',
       },
       {
         component: CNavItem,
-        name: 'CoreUI Flags',
+        name: 'Admin Commission',
         to: '/icons/flags',
       },
       {
         component: CNavItem,
-        name: 'CoreUI Brands',
+        name: 'Professional Payouts',
+        to: '/icons/brands',
+      },
+      {
+        component: CNavItem,
+        name: 'Refunds Requests',
+        to: '/icons/brands',
+      },
+      {
+        component: CNavItem,
+        name: 'Disputes',
+        to: '/icons/brands',
+      },
+      {
+        component: CNavItem,
+        name: 'Wallet Management',
         to: '/icons/brands',
       },
     ],
@@ -435,7 +460,7 @@ const _nav = [
     items: [
       {
         component: CNavItem,
-        name: 'Alerts',
+        name: 'Payment',
         to: '/notifications/alerts',
       },
       {
@@ -456,8 +481,25 @@ const _nav = [
     ],
   },
   {
+    component: CNavGroup,
+    name: 'Reviews & Ratings',
+    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Customer Reviews',
+        to: '/icons/coreui-icons',
+      },
+      {
+        component: CNavItem,
+        name: 'Professional Reviews',
+        to: '/icons/flags',
+      },
+    ],
+  },
+  {
     component: CNavItem,
-    name: 'Widgets',
+    name: 'Coupons & Offers',
     to: '/widgets',
     icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
     badge: {
@@ -467,11 +509,11 @@ const _nav = [
   },
   {
     component: CNavTitle,
-    name: 'Extras',
+    name: 'Reports & Settings',
   },
   {
     component: CNavGroup,
-    name: 'Pages',
+    name: 'Reports',
     icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
     items: [
       {
@@ -498,7 +540,7 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Docs',
+    name: 'Settings',
     href: 'https://coreui.io/react/docs/templates/installation/',
     icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
   },
