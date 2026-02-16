@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 // import { CustomerSignup } from "../api/auth";
 import { useDispatch, useSelector } from "react-redux";            //Redux se dispatch (action trigger karne ke liye) aur useSelector (state access karne ke liye)
-import { customerUserSignup } from "../redux/feature/auth/authSlice"; //customerUserSignup – Redux thunk action jo signup request bhejta hai
+import { customerUserSignup } from "../../redux/feature/auth/authSlice"; //customerUserSignup – Redux thunk action jo signup request bhejta hai
 import { unwrapResult } from "@reduxjs/toolkit"; //unwrapResult – Redux Toolkit helper, jo async thunk ka final result nikalta hai
 import { zodResolver } from "@hookform/resolvers/zod";
-import { customerSignupSchema } from "../utils/schema/customerSignupSchema";
+import { customerSignupSchema } from "../../utils/schema/customerSignupSchema";
+import { toast } from "react-toastify";
 
 const SignUpCustomer = () => {
   const dispatch = useDispatch();
@@ -37,15 +38,13 @@ const SignUpCustomer = () => {
       console.log(res);
 
       if (res.success) {
-        alert("Signup successful!");
+        toast.success("Signup successful!");
       } else {
-        alert(res.message || "Email is already registered!");
+        toast.error("Email is already registered!");
       }
     } catch (error) {
       console.error("Signup error:", error);
-      alert(
-        error.message || "Signup failed. Please try again."
-      );
+      toast.error("Signup failed. Please try again.");
     }
   };
 
@@ -84,6 +83,22 @@ const SignUpCustomer = () => {
               />
               {errors.name && (
                 <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+              )}
+            </div>
+
+            {/* UserName */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                UserName
+              </label>
+              <input
+                type="text"
+                {...register("username")}
+                placeholder="John Doe"
+                className={`w-full px-4 py-3 rounded-lg border ${errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              />
+              {errors.username && (
+                <p className="text-xs text-red-500 mt-1">{errors.username.message}</p>
               )}
             </div>
 

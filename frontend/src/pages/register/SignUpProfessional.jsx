@@ -1,12 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ProfessionalSignup } from "../api/auth";
+import { ProfessionalSignup } from "../../api/auth";
 import { useDispatch, useSelector } from "react-redux";
-import { professionalUserSignup } from "../redux/feature/auth/authSlice";
+import { professionalUserSignup } from "../../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { professionalSignupSchema } from "../utils/schema/professionalSignupSchema";
+import { professionalSignupSchema } from "../../utils/schema/professionalSignupSchema";
 
 const SignUpProfessional = () => {
 

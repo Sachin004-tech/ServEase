@@ -23,12 +23,12 @@ export const ProfessionalSignup = async (signupData) => {
   }
 };
 
-export const AdminLogin = async (loginData) => {
+export const CustomerLogin = async (loginData) => {
   try {
-    const response = await axiosInstance.post("/admin/login", loginData);
+    const response = await axiosInstance.post("/customer/login", loginData);
     return response.data;
   } catch (error) {
-    console.error("Admin login error:", error.response?.data || error.message);
+    console.error("Customer login error:", error.response?.data || error.message);
     throw error;  // Re-throw for Redux thunk to handle
   }
 };
