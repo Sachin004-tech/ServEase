@@ -2,7 +2,9 @@ import mysql.connector
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 import os
 from dotenv import load_dotenv
 
@@ -50,14 +52,21 @@ def send_email(to_mail, subject, body):# email function
     except Exception as e:
         print("Email sending failed:", str(e))
 
+cloudinary.config(
+  cloud_name = "dv5gddq6b",
+  api_key = "538757866553379",
+  api_secret = "3vts0wYDUot7X_B0MCTHDKToqK8",
+  secure = True
+)
 
 
 
 
-# conn = connection()
-# cursor = conn.cursor()
-# cursor.execute("DESCRIBE users;")
-# for row in cursor.fetchall():
-#     print(row)
-# cursor.close()
-# conn.close()
+
+
+
+
+# cloudinary details
+# 3vts0wYDUot7X_B0MCTHDKToqK8         api SECRET
+# 538757866553379   api KEY
+# dv5gddq6b   cloud name

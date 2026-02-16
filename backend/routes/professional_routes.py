@@ -8,186 +8,156 @@ from werkzeug.utils import secure_filename
 from config import send_email
 import os
 from config import SECRET_KEY
+import cloudinary.uploader
+import random
 
 
 
+professional_bp = Blueprint("professional", __name__)
 
-professional_bp = Blueprint("professional", __name__, url_prefix="/professional")
-
-UPLOAD_FOLDER = "static/doc"
-
+UPLOAD_FOLDER = os.path.join(os.getcwd(), "static", "doc")
 
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
 def allowed_file(filename):
-    return "." in filename and \
-           filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# -------------------- SIGNUP -------------
-
+# -------------------- PROFESSIONAL SIGNUP --------------------
 @professional_bp.route("/signup", methods=["POST"])
 def professional_signup():
+    name = request.form.get("name")
+    email = request.form.get("email")
+    password = request.form.get("password")
+    skill = request.form.get("skill")
+    phone = request.form.get("phone")  # fixed
+    experience = request.form.get("experience")
 
-    # ---------- FORM DATA ----------
-    name = request.form.get("name", "").strip()
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "").strip()
-    phone = request.form.get("phone", "").strip()
-    skill = request.form.get("skill", "").strip()
-    experience = request.form.get("experience", "").strip()
-    if experience:
-        experience = int(experience)
-    else:
-        experience = None
-
-    file = request.files.get("document")
-
-    # ---------- VALIDATION ----------
     if not all([name, email, password, skill]):
-        return jsonify({"message": "Required fields missing"}), 400
+        return jsonify({
+            "message": "Name, Email, Password, and Skill are required",
+            "status": "error"
+        }), 400
 
-    if not file or file.filename == "":
-        return jsonify({"message": "Document required"}), 400
+    document = request.files.get("document")
+    document_url = None
 
-    if not allowed_file(file.filename):
-        return jsonify({"message": "Only pdf, doc, docx allowed"}), 400
+    if document:
+        if allowed_file(document.filename):
+            filename = secure_filename(document.filename)
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    document,
+                    resource_type="raw",  # fixed
+                    folder="servease/resume"
+                )
+                document_url = upload_result.get("secure_url")
+            except Exception as e:
+                return jsonify({"message": f"Document upload failed: {str(e)}"}), 500
+        else:
+            return jsonify({
+                "message": "Invalid document format. Allowed: pdf, doc, docx"
+            }), 400
 
+    # Password hashing
+    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    # Database insert
     conn = connection()
     cursor = conn.cursor(dictionary=True)
-
     try:
-        # ---------- EMAIL CHECK ----------
-        cursor.execute(
-            "SELECT * FROM professionals WHERE email=%s",
-            (email,)
-        )
+        cursor.execute("SELECT * FROM professionals WHERE email=%s", (email,))
         if cursor.fetchone():
-            return jsonify({"message": "Email already exists"}), 400
+            return jsonify({"message": "Email already registered"}), 400
 
-        # ---------- PASSWORD HASH ----------
-        hashed = bcrypt.hashpw(
-            password.encode("utf-8"),
-            bcrypt.gensalt()
-        ).decode("utf-8")
-
-        # ---------- SAVE FILE ----------
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
-
-        # ---------- INSERT ----------
         cursor.execute("""
             INSERT INTO professionals
-            (name,email,password,phone,skill,experience,document_path,status)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,'pending')
-        """, (
-            name, email, hashed,
-            phone, skill, experience,
-            filepath
-        ))
+            (name, email, password, phone, skill, experience, document_path, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
+        """, (name, email, hashed_password, phone, skill, experience, document_url))
 
         conn.commit()
 
-        # ---------- SEND EMAIL ----------
-        subject = "ServEase Professional Signup"
+        # Send email
+        subject = "ServEase Signup Received"
         body = f"""
-Hello {name},
+        Hello {name},
 
-Your professional account has been created successfully.
+        Thank you for registering as a professional on ServEase.
 
-Status: Pending Approval
+        Your account is now pending approval by admin. You will receive an email once approved.
 
-You will be notified once approved by admin.
-
-Regards,
-ServEase Team
-"""
-
+        Regards,
+        ServEase Team
+        """
         send_email(email, subject, body)
 
         return jsonify({
-            "message": "Signup successful. Waiting for approval."
+            "message": "Signup successful, pending admin approval",
+            "status": "success",
+            "document_url": document_url
         }), 201
 
     finally:
         cursor.close()
         conn.close()
 
+# -------------------- PROFESSIONAL LOGIN --------------------
 @professional_bp.route("/login", methods=["POST"])
 def professional_login():
+    email = request.form.get("email")
+    password = request.form.get("password")
 
-    data = request.get_json()
-
-    email = data.get("email")
-    password = data.get("password")
-
-    if not email or not password:
-        return jsonify({"message":"Email and password required"}),400
+    if not all([email, password]):
+        return jsonify({"message": "Email and Password are required", "status": "error"}), 400
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
-        cursor.execute(
-            "SELECT * FROM professionals WHERE email=%s",
-            (email,)
-        )
+        cursor.execute("SELECT * FROM professionals WHERE email=%s", (email,))
+        professional = cursor.fetchone()
 
-        pro = cursor.fetchone()
+        if not professional:
+            return jsonify({"message": "Email not registered", "status": "error"}), 404
 
-        if not pro:
-            return jsonify({"message":"Invalid credentials"}),401
+        if professional["status"] != "approved":
+            return jsonify({"message": f"Your account is {professional['status']}, cannot login", "status": "error"}), 403
 
-        # status check
-        if pro["status"] != "approved":
-            return jsonify({
-                "message":"Account not approved yet"
-            }),403
+        # Check password
+        if not bcrypt.checkpw(password.encode("utf-8"), professional["password"].encode("utf-8")):
+            return jsonify({"message": "Incorrect password", "status": "error"}), 401
 
-        # password verify
-        if not bcrypt.checkpw(
-            password.encode("utf-8"),
-            pro["password"].encode("utf-8")
-        ):
-            return jsonify({"message":"Invalid credentials"}),401
-
-        # JWT token
-        payload = {
-            "professional_id": pro["professional_id"],
-            "role":"professional",
-            "exp": datetime.datetime.utcnow() +
-                   datetime.timedelta(hours=2)
+        # Generate JWT token
+        token_payload = {
+            "professional_id": professional["professional_id"],
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)  # token valid for 1 day
         }
+        token = jwt.encode(token_payload, SECRET_KEY, algorithm="HS256")
 
-        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-        if isinstance(token, bytes):
-            token = token.decode("utf-8")
-
-        # login alert email
-        subject = "ServEase Professional Login Alert"
+        # Send login email
+        subject = "ServEase Login Notification"
         body = f"""
-Hello {pro['name']},
+        Hello {professional['name']},
 
-You have successfully logged into ServEase.
+        You have successfully logged in to your ServEase Professional account.
 
-If this wasn't you, contact support immediately.
+        If this wasn't you, please contact support immediately.
 
-Regards,
-ServEase Team
+        Regards,
+        ServEase Team
         """
+        send_email(email, subject, body)
 
-        send_email(pro["email"], subject, body)
-
+        # Return response
         return jsonify({
-            "message":"Login successful",
-            "token":token
-        }),200
+            "message": "Login successful",
+            "status": "success",
+            "token": token
+        }), 200
 
     finally:
         cursor.close()
         conn.close()
-
 def professional_token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -215,550 +185,308 @@ def professional_token_required(f):
 
     return decorated
 
+# -------------------- Forgot Password (Send OTP) --------------------
+@professional_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    if not request.is_json:
+        return jsonify({"message": "Content-Type must be application/json"}), 415
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@professional_bp.route("/profile", methods=["GET"])
-
-def professional_profile(professional_id):
+    data = request.get_json()
+    email = data.get("email")
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT professional_id,name,email,phone,skill,experience,status,document_path FROM professionals WHERE professional_id=%s", (professional_id,))
-    professional = cursor.fetchone()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute("SELECT * FROM professionals WHERE email=%s", (email,))
+        professional = cursor.fetchone()
 
-    if not professional:
-        return jsonify({"message": "Professional not found"}), 404
+        # Always return same response to avoid leaking existence
+        if not professional:
+            return jsonify({"message": "If this email exists, OTP has been sent"}), 200
 
-    return jsonify({"professional": professional}), 200
+        # Delete old OTPs for this professional
+        cursor.execute("DELETE FROM professional_password_reset WHERE professional_id=%s",
+                       (professional["professional_id"],))
 
+        # Generate 6-digit OTP
+        otp = str(random.randint(100000, 999999))
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
 
+        # Insert OTP record
+        cursor.execute("""
+            INSERT INTO professional_password_reset 
+            (professional_id, otp, expires_at)
+            VALUES (%s, %s, %s)
+        """, (professional["professional_id"], otp, expires_at))
+        conn.commit()
 
-#------------------------------------------Services here-----------------------------
-#Add new services
-@professional_bp.route("/servcies/add", methods=["POST"])
+        # Send OTP email
+        subject = "ServEase Password Reset OTP"
+        body = f"""
+        Hello {professional['name']},
 
-def add_service(professional_id):
+        Your password reset OTP is: {otp}
+
+        This OTP is valid for 10 minutes. Do not share it with anyone.
+
+        Regards,
+        ServEase Team
+        """
+        send_email(professional["email"], subject, body)
+
+        return jsonify({"message": "If this email exists, OTP has been sent"}), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+# -------------------- Verify OTP --------------------
+@professional_bp.route("/verify-otp", methods=["POST"])
+def verify_otp():
+    if not request.is_json:
+        return jsonify({"message": "Content-Type must be application/json"}), 415
 
     data = request.get_json()
-    service_name = data.get("service_name")
-    category = data.get("category")
-    description  = data.get("description")
-    price = data.get("price")
+    email = data.get("email", "").strip().lower()
+    otp = str(data.get("otp", "")).strip()
 
-    if not all([service_name, category, price]):
-        return jsonify({"message":"Requried fields are missing"}),400
+    if not email or not otp:
+        return jsonify({"message": "Email and OTP are required"}), 400
 
-    conn= connection()
-    cursor = conn.cursor()
-
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
     try:
+        cursor.execute("SELECT * FROM professionals WHERE LOWER(email) = %s", (email,))
+        professional = cursor.fetchone()
+        if not professional:
+            return jsonify({"message": "Invalid request"}), 400
+
+        # Fetch OTP record
         cursor.execute("""
-            INSERT INTO services (service_name, category, description, price, professional_id)
-            VALUES (%s, %s, %s, %s, %s)
-        """,(service_name, category,description,price,professional_id))
+            SELECT * FROM professional_password_reset
+            WHERE professional_id=%s AND otp=%s
+        """, (professional["professional_id"], otp))
+        record = cursor.fetchone()
+
+        if not record:
+            return jsonify({"message": "OTP not found"}), 400
+        if datetime.datetime.utcnow() > record["expires_at"]:
+            return jsonify({"message": "OTP expired"}), 400
+        if record["attempts"] >= 3:
+            return jsonify({"message": "Too many attempts"}), 403
+
+        # Mark OTP as verified
+        cursor.execute("""
+            UPDATE professional_password_reset
+            SET is_verified=1
+            WHERE professional_id=%s AND otp=%s
+        """, (professional["professional_id"], otp))
         conn.commit()
-        return jsonify({"message":"Service added successfully"}),201
-    except Exception as err:
-        return jsonify({"error":str(err)}),500
+
+        return jsonify({"message": "OTP verified successfully"}), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+# -------------------- Reset Password --------------------
+@professional_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    if not request.is_json:
+        return jsonify({"message": "Content-Type must be application/json"}), 415
+
+    data = request.get_json()
+    email = data.get("email")
+    new_password = data.get("password")
+    if not email or not new_password:
+        return jsonify({"message": "Email and new password are required"}), 400
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM professionals WHERE email=%s", (email,))
+        professional = cursor.fetchone()
+        if not professional:
+            return jsonify({"message": "Invalid request"}), 400
+
+        # Check if OTP was verified
+        cursor.execute("""
+            SELECT * FROM professional_password_reset
+            WHERE professional_id=%s
+        """, (professional["professional_id"],))
+        record = cursor.fetchone()
+        if not record or record["is_verified"] == 0:
+            return jsonify({"message": "OTP not verified"}), 403
+
+        # Hash new password
+        hashed_password = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt())
+
+        # Update professional password
+        cursor.execute("""
+            UPDATE professionals
+            SET password=%s
+            WHERE professional_id=%s
+        """, (hashed_password.decode("utf-8"), professional["professional_id"]))
+
+        # Delete OTP record after success
+        cursor.execute("""
+            DELETE FROM professional_password_reset
+            WHERE professional_id=%s
+        """, (professional["professional_id"],))
+        conn.commit()
+
+        # Send confirmation email
+        subject = "ServEase Password Changed Successfully"
+        body = f"""
+        Hello {professional['name']},
+
+        Your password has been successfully changed.
+
+        If this was not you, contact support immediately.
+
+        Regards,
+        ServEase Team
+        """
+        send_email(professional["email"], subject, body)
+
+        return jsonify({"message": "Password reset successful"}), 200
+
     finally:
         cursor.close()
         conn.close()
 
-#View own services
-@professional_bp.route("/services", methods=["GET"])
 
-def get_professional_services(professional_id):
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT service_id, service_name, category, description, price, professional_id
-        FROM services
-        WHERE professional_id = %s
-    """, (professional_id,))
-    services = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-    return jsonify({
-        "total_services":len(services),
-        "services":services
-    }),200
-
-#Total services count by professional
-@professional_bp.route("/services/count", methods=["GET"])
-
-def count_services(professional_id):
-
-    conn = connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM services WHERE professional_id=%s", (professional_id,))
-    total = cursor.fetchone()[0]
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"total_services": total}), 200
-
-
-#Update and Delete the services
-@professional_bp.route("/services/update/<int:service_id>", methods=["PUT"])
-
-def update_service(professional_id, service_id):
+#------------------------------------------Services here-----------------------------
+@professional_bp.route("/services/add", methods =["POST"])
+@professional_token_required
+def add_service(pro_id):
 
     data = request.get_json()
+
     service_name = data.get("service_name")
     category = data.get("category")
     description = data.get("description")
     price = data.get("price")
 
+    if not all([service_name, category, price]):
+        return jsonify({"message": "Required fields missing"}), 400
+
     conn = connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        UPDATE services 
-        SET service_name=%s, category=%s, description=%s, price=%s
-        WHERE service_id=%s AND professional_id=%s
-    """, (service_name, category, description, price, service_id, professional_id))
+    try:
+        cursor.execute("""
+            INSERT INTO services
+            (service_name, category, description, price, professional_id, status)
+            VALUES (%s,%s,%s,%s,%s,'active')
+        """, (service_name, category, description, price, pro_id))
 
-    conn.commit()
+        conn.commit()
 
-    cursor.close()
-    conn.close()
+        return jsonify({
+            "message": "Service added successfully"
+        }), 201
 
-    return jsonify({"message": "Service updated successfully!"}), 200
+    finally:
+        cursor.close()
+        conn.close()
 
+@professional_bp.route("/services/my", methods=["GET"])#
+@professional_token_required
+def my_services(pro_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT * FROM services
+            WHERE professional_id=%s
+        """, (pro_id,))
+
+        services = cursor.fetchall()
+
+        return jsonify(services), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@professional_bp.route("/services/edit/<int:service_id>", methods=["PUT"])
+@professional_token_required
+def edit_service(pro_id, service_id):
+
+    data = request.get_json()
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # ownership check
+        cursor.execute("""
+            SELECT * FROM services
+            WHERE service_id=%s AND professional_id=%s
+        """, (service_id, pro_id))
+
+        service = cursor.fetchone()
+
+        if not service:
+            return jsonify({"message":"Service not found"}),404
+
+        service_name = data.get("service_name", service["service_name"])
+        category = data.get("category", service["category"])
+        description = data.get("description", service["description"])
+        price = data.get("price", service["price"])
+        status = data.get("status", service["status"])
+
+        cursor.execute("""
+            UPDATE services
+            SET service_name=%s,
+                category=%s,
+                description=%s,
+                price=%s,
+                status=%s
+            WHERE service_id=%s
+        """, (
+            service_name,
+            category,
+            description,
+            price,
+            status,
+            service_id
+        ))
+
+        conn.commit()
+
+        return jsonify({"message":"Service updated successfully"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
 
 @professional_bp.route("/services/delete/<int:service_id>", methods=["DELETE"])
-
-def delete_service(professional_id, service_id):
-
-    conn = connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        DELETE FROM services 
-        WHERE service_id=%s AND professional_id=%s
-    """, (service_id, professional_id))
-
-    conn.commit()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "Service deleted successfully!"}), 200
-
-# -------------------- VIEW PROFESSIONAL BOOKINGS --------------------
-@professional_bp.route("/bookings", methods=["GET"])
-
-def view_bookings(professional_id):
+@professional_token_required
+def delete_service(pro_id, service_id):
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
-    query = """
-        SELECT 
-            b.booking_id,
-            b.booking_date,
-            b.booking_time,
-            b.status,
-            b.live_status,
-            b.amount,
-            b.service_name,
-            u.name AS customer_name,
-            u.phone AS customer_phone,
-            u.address AS customer_address
-        FROM bookings b
-        JOIN users u ON b.user_id = u.user_id
-        WHERE b.professional_id = %s
-        ORDER BY b.created_at DESC
-    """
-
-    cursor.execute(query, (professional_id,))
-    bookings = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({
-        "total_bookings": len(bookings),
-        "bookings": bookings
-    }), 200
-
-# -------------------- ACCEPT BOOKING --------------------
-@professional_bp.route("/bookings/accept/<int:booking_id>", methods=["PUT"])
-
-def accept_booking(professional_id, booking_id):
-
-    conn = connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE bookings
-        SET status='accepted', live_status='accepted'
-        WHERE booking_id=%s AND professional_id=%s
-    """, (booking_id, professional_id))
-
-    conn.commit()
-
-    if cursor.rowcount == 0:
-        return jsonify({"message": "Booking not found or unauthorized"}), 404
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "Booking accepted successfully!"}), 200
-
-
-# -------------------- REJECT BOOKING --------------------
-@professional_bp.route("/bookings/reject/<int:booking_id>", methods=["PUT"])
-
-def reject_booking(professional_id, booking_id):
-
-    conn = connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE bookings
-        SET status='cancelled', live_status='cancelled'
-        WHERE booking_id=%s AND professional_id=%s
-    """, (booking_id, professional_id))
-
-    conn.commit()
-
-    if cursor.rowcount == 0:
-        return jsonify({"message": "Booking not found or unauthorized"}), 404
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "Booking rejected successfully!"}), 200
-
-
-# -------------------- BOOKING DETAILS --------------------
-@professional_bp.route("/bookings/<int:booking_id>", methods=["GET"])
-
-def booking_details(professional_id, booking_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    query = """
-        SELECT 
-            b.*,
-            u.name AS customer_name,
-            u.email AS customer_email,
-            u.phone AS customer_phone,
-            u.address AS customer_address,
-            p.name AS professional_name
-        FROM bookings b
-        JOIN users u ON b.user_id = u.user_id
-        JOIN professionals p ON b.professional_id = p.professional_id
-        WHERE b.booking_id=%s AND b.professional_id=%s
-    """
-
-    cursor.execute(query, (booking_id, professional_id))
-    booking = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    if not booking:
-        return jsonify({"message": "Booking not found"}), 404
-
-    return jsonify({"booking": booking}), 200
-
-# -------------------- INCOMING BOOKINGS --------------------
-@professional_bp.route("/bookings/incoming", methods=["GET"])
-
-def incoming_bookings(professional_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    query = """
-        SELECT 
-            b.booking_id,
-            b.booking_date,
-            b.booking_time,
-            b.amount,
-            b.status,
-            b.live_status,
-            b.service_name,
-            b.created_at,
-
-            u.name AS customer_name,
-            u.phone AS customer_phone,
-            u.address AS customer_address
-
-        FROM bookings b
-        JOIN users u ON b.user_id = u.user_id
-        WHERE b.professional_id = %s AND b.status = 'pending'
-        ORDER BY b.created_at DESC
-    """
-
-    cursor.execute(query, (professional_id,))
-    bookings = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({
-        "incoming_jobs": len(bookings),
-        "bookings": bookings
-    }), 200
-
-
-# -------------------- ACTIVE JOBS --------------------
-@professional_bp.route("/bookings/active", methods=["GET"])
-
-def active_jobs(professional_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    query = """
-        SELECT 
-            b.booking_id,
-            b.booking_date,
-            b.booking_time,
-            b.amount,
-            b.status,
-            b.live_status,
-            b.service_name,
-
-            u.name AS customer_name,
-            u.phone AS customer_phone,
-            u.address AS customer_address
-
-        FROM bookings b
-        JOIN users u ON b.user_id = u.user_id
-        WHERE b.professional_id = %s 
-        AND (
-            b.status = 'accepted'
-            OR b.live_status IN ('on_the_way', 'arrived')
-        )
-        ORDER BY b.created_at DESC
-    """
-
-    cursor.execute(query, (professional_id,))
-    jobs = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({
-        "active_jobs": len(jobs),
-        "jobs": jobs
-    }), 200
-
-
-# -------------------- JOB SUMMARY --------------------
-@professional_bp.route("/dashboard/stats", methods=["GET"])
-
-def professional_dashboard_stats(professional_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    query = """
-        SELECT 
-            COUNT(*) AS total_jobs,
-            SUM(status='pending') AS incoming_jobs,
-            SUM(status='accepted') AS accepted_jobs,
-            SUM(status='completed') AS completed_jobs,
-            SUM(status='cancelled') AS cancelled_jobs
-        FROM bookings
-        WHERE professional_id = %s
-    """
-
-    cursor.execute(query, (professional_id,))
-    stats = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"stats": stats}), 200
-
-
-# -------------------- UPDATE LIVE STATUS --------------------
-@professional_bp.route("/bookings/status/<int:booking_id>", methods=["PUT"])
-
-def update_live_status(professional_id, booking_id):
-
-    data = request.get_json()
-    live_status = data.get("live_status")
-
-    allowed_status = ["on_the_way", "arrived", "completed"]
-
-    if live_status not in allowed_status:
-        return jsonify({"message": "Invalid status"}), 400
-
-    conn = connection()
-    cursor = conn.cursor()
-
-    # if completed → update main status too
-    if live_status == "completed":
+    try:
         cursor.execute("""
-            UPDATE bookings
-            SET live_status=%s, status='completed'
-            WHERE booking_id=%s AND professional_id=%s
-        """, (live_status, booking_id, professional_id))
-    else:
-        cursor.execute("""
-            UPDATE bookings
-            SET live_status=%s
-            WHERE booking_id=%s AND professional_id=%s
-        """, (live_status, booking_id, professional_id))
+            DELETE FROM services
+            WHERE service_id=%s AND professional_id=%s
+        """, (service_id, pro_id))
 
-    conn.commit()
+        conn.commit()
 
-    if cursor.rowcount == 0:
-        return jsonify({"message": "Booking not found"}), 404
+        if cursor.rowcount == 0:
+            return jsonify({"message":"Service not found"}),404
 
-    cursor.close()
-    conn.close()
+        return jsonify({"message":"Service deleted"}),200
 
-    return jsonify({"message": "Live status updated successfully!"}), 200
-
-
-#------------------------Rating and Reviews----------------------
-# -------------------- VIEW RATINGS & REVIEWS --------------------
-@professional_bp.route("/reviews", methods=["GET"])
-
-def view_professional_reviews(professional_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    query = """
-        SELECT 
-            r.review_id,
-            r.rating,
-            r.review,
-            r.created_at,
-
-            u.name AS customer_name,
-            u.email AS customer_email,
-            b.service_name,
-            b.booking_date,
-            b.booking_time
-
-        FROM ratings_reviews r
-        JOIN users u ON r.user_id = u.user_id
-        JOIN bookings b ON r.booking_id = b.booking_id
-        WHERE r.professional_id = %s
-        ORDER BY r.created_at DESC
-    """
-
-    cursor.execute(query, (professional_id,))
-    reviews = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({
-        "total_reviews": len(reviews),
-        "reviews": reviews
-    }), 200
-
-
-# -------------------- PROFESSIONAL AVG RATING --------------------
-@professional_bp.route("/reviews/stats", methods=["GET"])
-
-def professional_rating_stats(professional_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT 
-            ROUND(AVG(rating), 1) AS avg_rating,
-            COUNT(*) AS total_reviews,
-            SUM(rating=5) AS five_star,
-            SUM(rating=4) AS four_star,
-            SUM(rating=3) AS three_star,
-            SUM(rating=2) AS two_star,
-            SUM(rating=1) AS one_star
-        FROM ratings_reviews
-        WHERE professional_id = %s
-    """, (professional_id,))
-
-    stats = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({"rating_stats": stats}), 200
-
-
-# -------------------- REVIEW BY BOOKING --------------------
-@professional_bp.route("/reviews/<int:booking_id>", methods=["GET"])
-
-def review_by_booking(professional_id, booking_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT 
-            r.review_id,
-            r.rating,
-            r.review,
-            r.created_at,
-            u.name AS customer_name
-        FROM ratings_reviews r
-        JOIN users u ON r.user_id = u.user_id
-        WHERE r.booking_id=%s AND r.professional_id=%s
-    """, (booking_id, professional_id))
-
-    review = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    if not review:
-        return jsonify({"message": "No review found"}), 404
-
-    return jsonify({"review": review}), 200
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
@@ -771,95 +499,60 @@ def review_by_booking(professional_id, booking_id):
 
 
 
-
-
-#------------------------------------------DASHBOARD-------------------
-# -------------------- PROFESSIONAL DASHBOARD --------------------
+#-----------------------------DASHBOARD FOR PROFESSIONAL--------------
 @professional_bp.route("/dashboard", methods=["GET"])
-
-def professional_dashboard(professional_id):
+@professional_token_required
+def professional_dashboard(pro_id):
     conn = connection()
     cursor = conn.cursor(dictionary=True)
+    try:
+        # -------- Total, pending, accepted, completed jobs -----------
+        cursor.execute("""
+            SELECT 
+                COUNT(*) AS total_jobs,
+                SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending_jobs,
+                SUM(CASE WHEN status='accepted' THEN 1 ELSE 0 END) AS accepted_jobs,
+                SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed_jobs
+            FROM bookings
+            WHERE professional_id=%s
+        """, (pro_id,))
+        jobs = cursor.fetchone()
 
-    # 1️⃣ JOB STATS + EARNINGS
-    query_jobs = """
-        SELECT 
-            COUNT(*) AS total_jobs,
-            SUM(status='pending') AS pending_jobs,
-            SUM(status='accepted') AS accepted_jobs,
-            SUM(status='completed') AS completed_jobs,
+        # -------- Earnings (total, monthly, today) -----------
+        cursor.execute("""
+            SELECT 
+                IFNULL(SUM(p.amount),0) AS total_earn,
+                IFNULL(SUM(CASE WHEN MONTH(p.created_at)=MONTH(CURDATE()) AND YEAR(p.created_at)=YEAR(CURDATE()) THEN p.amount ELSE 0 END),0) AS monthly_earn,
+                IFNULL(SUM(CASE WHEN DATE(p.created_at)=CURDATE() THEN p.amount ELSE 0 END),0) AS today_earn
+            FROM payments p
+            JOIN bookings b ON b.booking_id = p.booking_id
+            WHERE b.professional_id=%s
+            AND p.payment_status='paid'
+        """, (pro_id,))
+        earnings = cursor.fetchone()
 
-            IFNULL(SUM(CASE WHEN status='completed' THEN amount ELSE 0 END), 0) AS total_earning,
+        # -------- Average rating -----------
+        cursor.execute("""
+            SELECT IFNULL(AVG(rating),0) AS average_rating
+            FROM ratings_reviews
+            WHERE professional_id=%s
+        """, (pro_id,))
+        rating = cursor.fetchone()
 
-            IFNULL(SUM(CASE 
-                WHEN status='completed' AND MONTH(booking_date)=MONTH(CURDATE()) 
-                AND YEAR(booking_date)=YEAR(CURDATE()) 
-                THEN amount ELSE 0 END), 0) AS monthly_earning,
+        # Combine all results
+        dashboard = {
+            "total_jobs": jobs["total_jobs"] or 0,
+            "pending_jobs": jobs["pending_jobs"] or 0,
+            "accepted_jobs": jobs["accepted_jobs"] or 0,
+            "completed_jobs": jobs["completed_jobs"] or 0,
+            "total_earn": float(earnings["total_earn"]),
+            "monthly_earn": float(earnings["monthly_earn"]),
+            "today_earn": float(earnings["today_earn"]),
+            "average_rating": float(round(rating["average_rating"],2))
+        }
 
-            IFNULL(SUM(CASE 
-                WHEN status='completed' AND booking_date=CURDATE() 
-                THEN amount ELSE 0 END), 0) AS today_earning
+        return jsonify(dashboard), 200
 
-        FROM bookings
-        WHERE professional_id = %s
-    """
-
-    cursor.execute(query_jobs, (professional_id,))
-    job_stats = cursor.fetchone()
-
-    # 2️⃣ RATING STATS
-    query_rating = """
-        SELECT 
-            ROUND(AVG(rating), 1) AS avg_rating,
-            COUNT(*) AS total_reviews
-        FROM ratings_reviews
-        WHERE professional_id = %s
-    """
-
-    cursor.execute(query_rating, (professional_id,))
-    rating_stats = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    dashboard = {
-        "jobs": job_stats,
-        "ratings": rating_stats
-    }
-
-    return jsonify({
-        "message": "Professional dashboard data fetched successfully",
-        "dashboard": dashboard
-    }), 200
-
-
-# -------------------- UPDATE PROFESSIONAL PROFILE --------------------
-@professional_bp.route("/profile/update", methods=["PATCH"])
-
-def update_professional_profile(professional_id):
-
-    data = request.get_json()
-    fields = []
-    values = []
-
-    for key in ["name", "phone", "skill", "experience", "document_path"]:
-        if key in data:
-            fields.append(f"{key}=%s")
-            values.append(data[key])
-
-    if not fields:
-        return jsonify({"message": "No data provided"}), 400
-
-    values.append(professional_id)
-
-    conn = connection()
-    cursor = conn.cursor()
-
-    query = f"UPDATE professionals SET {', '.join(fields)} WHERE professional_id=%s"
-    cursor.execute(query, tuple(values))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "Profile updated successfully!"}), 200
+    finally:
+        cursor.close()
+        conn.close()
