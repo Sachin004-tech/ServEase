@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const customerSignupSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters long").nonempty("Name is required"),
+    username: z.string().min(4, "Username must be at least 4 characters long and unique").nonempty("Username is required"),
     email: z.string().email("Invalid email format").nonempty("Email is required"),
     password: z
         .string()

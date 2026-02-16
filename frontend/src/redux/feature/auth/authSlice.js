@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // import { login, CustomerSignup, ProfessionalSignup } from './authAPI';
 import {
-  AdminLogin,
-  CustomerSignup,         
+  CustomerLogin,
+  CustomerSignup,
   ProfessionalSignup,
 } from "../../../api/auth";              // Importing API functions that make real HTTP requests
 
@@ -12,11 +12,7 @@ export const loginUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => { // userData → { email, password } (from frontend)
 
     try {
-
-      // Send login data to backend using API call
-      const res = await AdminLogin(userData);
-
-      //  Return backend response → goes into fulfilled case
+      const res = await CustomerLogin(userData);
       return res;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Login Failed");
@@ -78,7 +74,7 @@ const authSlice = createSlice({
 
     builder.addCase(loginUser.rejected, (state, action) => {
       state.loading = false;
-      state.user = action.payload;
+      state.error = action.payload;
     });
 
     // signup Customer
@@ -115,5 +111,5 @@ const authSlice = createSlice({
   },
 });
 
-export const {logout} =  authSlice.actions;        // Exporting the logout function for use in components
+export const { logout } = authSlice.actions;        // Exporting the logout function for use in components
 export default authSlice.reducer;                  // Exporting reducer for Redux store

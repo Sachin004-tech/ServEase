@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Modal from "./modal/Modal";
 import RoleSelection from "./RoleSelection";
 import { useForm } from "react-hook-form";
-import { AdminLogin } from "../api/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
@@ -33,18 +32,16 @@ const LoginPage = () => {
     console.log(data);
     try {
       const resultAction = await dispatch(
-        loginUser({ email: data.email, password: data.password })
+        loginUser({ email: data.email, password: data.password, role: data.role })
       );
-
       const res = unwrapResult(resultAction);
+      localStorage.setItem("token", res.token);
       console.log(res);
-      localStorage.setItem("admin_id", res.admin_id);
       toast.success(res.message);
-
-      if (res.admin_id) {
-        navigate("/admin/admindashboard");
-      } else {
+      if (res.success === data.role) {
         navigate("/");
+      } else if (res.success === data.role) {
+        navigate("/professional");
       }
     } catch (err) {
       toast.error(err.message || "Login failed");
