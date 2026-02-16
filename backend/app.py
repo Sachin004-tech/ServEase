@@ -21,7 +21,7 @@ CORS(
   }
 )
 
-app.config["SECRET_KEY"] = "SECRET_KEY"
+app.config["SECRET_KEY"] = SECRET_KEY
 
 app.register_blueprint(admin_bp, url_prefix="/admin")
 app.register_blueprint(customer_bp, url_prefix="/customer")

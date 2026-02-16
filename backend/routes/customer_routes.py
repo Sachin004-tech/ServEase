@@ -1,4 +1,3 @@
-from django.conf.global_settings import SECRET_KEY
 from flask import Flask
 from flask import request, jsonify, Blueprint
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -9,6 +8,8 @@ from config import connection, send_email
 from functools import wraps
 import random  # for the password reset
 from config import SECRET_KEY
+from datetime import timedelta, time, date
+
 
 
 
@@ -16,7 +17,6 @@ from config import SECRET_KEY
 
 customer_bp = Blueprint('customer', __name__)
 
-# ------------------ SIGNUP ------------------
 @customer_bp.route('/signup', methods=['POST'])
 def customer_signup():
     data = request.get_json()
@@ -71,8 +71,6 @@ def customer_signup():
         cursor.close()
         conn.close()
 
-
-# ------------------ LOGIN ------------------
 @customer_bp.route('/login', methods=['POST'])
 def customer_login():
     data = request.get_json()
@@ -352,6 +350,300 @@ def reset_password():
         conn.close()
 
 
+#----------------------------SERVICES----------------------------
+@customer_bp.route("/services", methods=["GET"])
+def get_all_services():
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT s.*, p.name AS professional_name,
+                   p.skill, p.experience
+            FROM services s
+            JOIN professionals p
+            ON s.professional_id = p.professional_id
+            WHERE s.status='active'
+            AND p.status='approved'
+        """)
+
+        data = cursor.fetchall()
+
+        return jsonify(data), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+@customer_bp.route("/services/search", methods=["GET"])
+def search_services():
+
+    query = request.args.get("query", "").strip()
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        sql = """
+            SELECT s.*, p.name AS professional_name
+            FROM services s
+            JOIN professionals p
+            ON s.professional_id = p.professional_id
+            WHERE s.status='active'
+            AND (
+                s.service_name LIKE %s
+                OR s.category LIKE %s
+            )
+        """
+
+        search = f"%{query}%"
+
+        cursor.execute(sql, (search, search))
+
+        results = cursor.fetchall()
+
+        return jsonify(results), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+# ---------------- BOOK SERVICE ----------------
+@customer_bp.route("/bookings/create", methods=["POST"])
+@customer_token_required
+def create_booking(user_id):
+
+    data = request.get_json()
+
+    service_id = data.get("service_id")
+    booking_date = data.get("booking_date")
+    booking_time = data.get("booking_time")
+
+    if not all([service_id, booking_date, booking_time]):
+        return jsonify({"message": "Required fields missing"}), 400
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Get service details
+        cursor.execute("""
+            SELECT * FROM services
+            WHERE service_id=%s AND status='active'
+        """, (service_id,))
+        service = cursor.fetchone()
+
+        if not service:
+            return jsonify({"message": "Service not found"}), 404
+
+        # Insert booking
+        cursor.execute("""
+            INSERT INTO bookings
+            (user_id, professional_id, service_id,
+             amount, booking_date, booking_time,
+             status, service_name, live_status)
+            VALUES (%s,%s,%s,%s,%s,%s,
+                    'pending',%s,'pending')
+        """, (
+            user_id,
+            service["professional_id"],
+            service_id,
+            service["price"],
+            booking_date,
+            booking_time,
+            service["service_name"]
+        ))
+
+        conn.commit()
+
+        return jsonify({
+            "message": "Booking created successfully"
+        }), 201
+
+    finally:
+        cursor.close()
+        conn.close()
+@customer_bp.route("/bookings/my", methods=["GET"])
+@customer_token_required
+def my_bookings(user_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT b.*, p.name AS professional_name
+            FROM bookings b
+            LEFT JOIN professionals p
+            ON b.professional_id = p.professional_id
+            WHERE b.user_id=%s
+            ORDER BY b.created_at DESC
+        """, (user_id,))
+
+        data = cursor.fetchall()
+        for row in data:
+            for key, value in row.items():
+                if isinstance(value, (timedelta, time)):
+                    row[key] = str(value)
+
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error":str(e)}),500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+# -------- CUSTOMER MY BOOKINGS (ALL HISTORY) --------
+@customer_bp.route("/bookings/all-my", methods=["GET"])
+@customer_token_required
+def my_all_bookings(user_id):
+
+    # optional filter
+    status = request.args.get("status", "").strip().lower()
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        sql = """
+            SELECT 
+                b.booking_id,
+                b.service_name,
+                b.amount,
+                b.booking_date,
+                b.booking_time,
+                b.status,
+                b.live_status,
+                b.created_at,
+                p.name AS professional_name,
+                p.phone AS professional_phone,
+                p.skill AS professional_skill
+            FROM bookings b
+            JOIN professionals p
+            ON b.professional_id = p.professional_id
+            WHERE b.user_id = %s
+        """
+
+        params = [user_id]
+
+        # status filter (optional)
+        if status:
+            sql += " AND b.status = %s"
+            params.append(status)
+
+        # latest booking first (history + current)
+        sql += " ORDER BY b.booking_date DESC, b.booking_time DESC"
+
+        cursor.execute(sql, tuple(params))
+
+        bookings = cursor.fetchall()
+
+        # optional message if empty
+        if not bookings:
+            return jsonify({
+                "message": "No bookings found",
+                "data": []
+            }), 200
+        for row in bookings:
+            for key in row:
+                if row[key] is not None:
+                    row[key] = str(row[key])
+
+        return jsonify({
+            "total_bookings": len(bookings),
+            "data": bookings
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}),500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@customer_bp.route("/bookings/details/<int:booking_id>", methods=["GET"])
+@customer_token_required
+def booking_details_customer(user_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT b.*, p.name AS professional_name,
+                   p.phone AS professional_phone,
+                   p.skill
+            FROM bookings b
+            JOIN professionals p
+            ON b.professional_id = p.professional_id
+            WHERE b.booking_id=%s
+            AND b.user_id=%s
+        """, (booking_id, user_id))
+
+        booking = cursor.fetchone()
+
+        if not booking:
+            return jsonify({"message": "Booking not found"}), 404
+
+
+        for key in booking:
+            if booking[key] is not None:
+                booking[key] = str(booking[key])
+
+        return jsonify(booking), 200
+    except Exception as e:
+        return jsonify({"error":str(e)}),500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@customer_bp.route("/bookings/cancel/<int:booking_id>", methods=["PUT"])
+@customer_token_required
+def cancel_booking(user_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        cursor.execute("""
+            SELECT b.*, p.email AS pro_email
+            FROM bookings b
+            JOIN professionals p
+            ON b.professional_id = p.professional_id
+            WHERE b.booking_id=%s
+            AND b.user_id=%s
+        """, (booking_id, user_id))
+
+        booking = cursor.fetchone()
+
+        if not booking:
+            return jsonify({"message":"Booking not found"}),404
+
+        if booking["status"] not in ["pending", "accepted"]:
+            return jsonify({"message":"Cannot cancel this booking"}),400
+
+        cursor.execute("""
+            UPDATE bookings
+            SET status='cancelled',
+                live_status='cancelled'
+            WHERE booking_id=%s
+        """, (booking_id,))
+
+        conn.commit()
+
+        return jsonify({
+            "message":"Booking cancelled successfully"
+        }),200
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
@@ -373,633 +665,165 @@ def reset_password():
 
 
 
-#
-#
-#
-# # --------------------------------------------Services-----------------------------------------
-# #all services
-# # -------------------------------------------- Services -----------------------------------------
-#
-# # ✅ All active services
-# @customer_bp.route("/services", methods=["GET"])
-# def all_services():
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     cursor.execute("SELECT * FROM services")
-#     services = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "total_services": len(services),
-#         "services": services
-#     }), 200
-#
-#
-# # ✅ Search by name
-# @customer_bp.route("/services/search", methods=["GET"])
-# def search_services():
-#     name = request.args.get("name")
-#     if not name:
-#         return jsonify({"message": "Service name is required"}), 400
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = "SELECT * FROM services WHERE service_name = %s"
-#     cursor.execute(query, ("%" + name + "%",))
-#     services = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "total_services": len(services),
-#         "services": services
-#     }), 200
-#
-#
-# # ✅ Filter by category
-# @customer_bp.route("/services/category/<string:category>", methods=["GET"])
-# def service_by_category(category):
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     cursor.execute("SELECT * FROM services WHERE status='active' AND category = %s", (category,))
-#     services = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "category": category,
-#         "total_services": len(services),
-#         "services": services
-#     }), 200
-#
-#
-# # ✅ Sort by price (asc / desc)
-# @customer_bp.route("/services/price", methods=["GET"])
-# def service_by_price():
-#     order = request.args.get("order", "asc")
-#
-#     if order not in ["asc", "desc"]:
-#         return jsonify({"message": "Invalid order, use asc or desc"}), 400
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     cursor.execute(f"SELECT * FROM services WHERE status='active' ORDER BY price {order.upper()}")
-#     services = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "order": order,
-#         "total_services": len(services),
-#         "services": services
-#     }), 200
-#
-#
-# # ✅ Trending services (most booked)
-# @customer_bp.route("/services/trending", methods=["GET"])
-# def trending_services():
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT s.*, COUNT(b.booking_id) AS total_bookings
-#         FROM services s
-#         LEFT JOIN bookings b ON s.service_id = b.service_id
-#         WHERE s.status='active'
-#         GROUP BY s.service_id
-#         ORDER BY total_bookings DESC
-#         LIMIT 5
-#     """
-#     cursor.execute(query)
-#     services = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({"trending_services": services}), 200
-#
-# #Book now services
-# @customer_bp.route("/book-service",methods=["POST"])
-#
-# def book_service(user_id):
-#     data = request.get_json()
-#     service_id = data.get("service_id")
-#     booking_date = data.get("booking_date")
-#     booking_time = data.get("booking_time")
-#
-#     if not all([service_id, booking_date, booking_time]):
-#         return jsonify({"message":"All fields are requried"}),400
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     cursor.execute("""
-#         SELECT service_id, professional_id, price, service_name, status
-#         FROM services
-#         WHERE service_id = %s
-#     """, (service_id,))
-#     service = cursor.fetchone()
-#     if not service:
-#         return jsonify({"message":"Service not found"}),404
-#     if service["status"]!= "active":
-#         return jsonify({"messgae":"Service is not available"}),400
-#
-#     professional_id = service["professional_id"]
-#     amount = service["price"]
-#     service_name = service["service_name"]
-#
-#     cursor.execute("""
-#         SELECT * FROM bookings
-#         WHERE professional_id=%s
-#         AND booking_date=%s
-#         AND booking_time=%s
-#         AND status IN ('pending','accepted')
-#     """, (professional_id, booking_date, booking_time))
-#
-#     if cursor.fetchone():
-#         return jsonify({"message":"Professional already booked at this time "}),400
-#
-#     cursor.execute("""
-#         INSERT INTO bookings
-#         (user_id, professional_id, service_id, amount, booking_date, booking_time, service_name)
-#         VALUES (%s, %s, %s, %s, %s, %s, %s)
-#     """,  (user_id, professional_id, service_id, amount, booking_date, booking_time, service_name))
-#     conn.commit()
-#     booking_id = cursor.lastrowid
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "message":"Booking successful!",
-#         "booking_id":booking_id,
-#         "status":"pending"
-#     }),201
-#
-#
-# # ------------------- VIEW ALL PROFESSIONALS -------------------
-# @customer_bp.route("/professionals", methods=["GET"])
-# def view_professionals():
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             p.professional_id,
-#             p.name,
-#             p.skill,
-#             p.experience,
-#             p.status,
-#             p.phone,
-#
-#             -- total services by professional
-#             COUNT(DISTINCT s.service_id) AS total_services,
-#
-#             -- active services (all services because you don't have status column in services)
-#             COUNT(DISTINCT s.service_id) AS active_services,
-#
-#             -- average rating
-#             ROUND(AVG(r.rating), 1) AS avg_rating,
-#
-#             -- total completed jobs
-#             COUNT(DISTINCT CASE WHEN b.status = 'completed' THEN b.booking_id END) AS total_jobs_done
-#
-#         FROM professionals p
-#         LEFT JOIN services s ON p.professional_id = s.professional_id
-#         LEFT JOIN rating_reviews r ON p.professional_id = r.professional_id
-#         LEFT JOIN bookings b ON p.professional_id = b.professional_id
-#
-#         WHERE p.status = 'approved'
-#         GROUP BY p.professional_id
-#         ORDER BY avg_rating DESC
-#     """
-#
-#     cursor.execute(query)
-#     professionals = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "total_professionals": len(professionals),
-#         "professionals": professionals
-#     }), 200
-#
-#
-# # ------------------- VIEW PROFESSIONALS BY SERVICE -------------------
-# @customer_bp.route("/professionals/service/<int:service_id>", methods=["GET"])
-# def professionals_by_service(service_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             p.professional_id,
-#             p.name,
-#             p.skill,
-#             p.experience,
-#             s.service_name,
-#             s.category,
-#             s.price,
-#
-#             ROUND(AVG(r.rating), 1) AS avg_rating,
-#             COUNT(DISTINCT CASE WHEN b.status='completed' THEN b.booking_id END) AS total_jobs_done
-#
-#         FROM services s
-#         JOIN professionals p ON s.professional_id = p.professional_id
-#         LEFT JOIN rating_reviews r ON p.professional_id = r.professional_id
-#         LEFT JOIN bookings b ON p.professional_id = b.professional_id
-#
-#         WHERE s.service_id = %s
-#         AND p.status = 'approved'
-#         GROUP BY p.professional_id
-#     """
-#
-#     cursor.execute(query, (service_id,))
-#     professionals = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "professionals": professionals
-#     }), 200
-#
-#
-# # ------------------- PROFESSIONAL PROFILE -------------------
-# @customer_bp.route("/professionals/<int:professional_id>", methods=["GET"])
-# def professional_profile(professional_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             p.professional_id,
-#             p.name,
-#             p.email,
-#             p.phone,
-#             p.skill,
-#             p.experience,
-#             p.status,
-#
-#             COUNT(DISTINCT s.service_id) AS total_services,
-#             ROUND(AVG(r.rating), 1) AS avg_rating,
-#             COUNT(DISTINCT CASE WHEN b.status='completed' THEN b.booking_id END) AS total_jobs_done
-#
-#         FROM professionals p
-#         LEFT JOIN services s ON p.professional_id = s.professional_id
-#         LEFT JOIN rating_reviews r ON p.professional_id = r.professional_id
-#         LEFT JOIN bookings b ON p.professional_id = b.professional_id
-#
-#         WHERE p.professional_id = %s
-#         GROUP BY p.professional_id
-#     """
-#
-#     cursor.execute(query, (professional_id,))
-#     professional = cursor.fetchone()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     if not professional:
-#         return jsonify({"message": "Professional not found"}), 404
-#
-#     return jsonify({"professional": professional}), 200
-#
-#
-# # ------------------- PROFESSIONAL SERVICES -------------------
-# @customer_bp.route("/professionals/<int:professional_id>/services", methods=["GET"])
-# def professional_services(professional_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     cursor.execute("""
-#         SELECT service_id, service_name, category, description, price
-#         FROM services
-#         WHERE professional_id = %s
-#     """, (professional_id,))
-#
-#     services = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "total_services": len(services),
-#         "services": services
-#     }), 200
-#
-#
-# # sort professionals
-# @customer_bp.route("/professionals/sort", methods=["GET"])
-# def sort_professionals():
-#
-#     sort_by = request.args.get("by", "rating")  # rating / experience / jobs
-#
-#     order_map = {
-#         "rating": "avg_rating DESC",
-#         "experience": "p.experience DESC",
-#         "jobs": "total_jobs_done DESC"
-#     }
-#
-#     order_clause = order_map.get(sort_by, "avg_rating DESC")
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = f"""
-#         SELECT
-#             p.professional_id,
-#             p.name,
-#             p.skill,
-#             p.experience,
-#
-#             ROUND(AVG(r.rating), 1) AS avg_rating,
-#             COUNT(DISTINCT CASE WHEN b.status='completed' THEN b.booking_id END) AS total_jobs_done
-#
-#         FROM professionals p
-#         LEFT JOIN rating_reviews r ON p.professional_id = r.professional_id
-#         LEFT JOIN bookings b ON p.professional_id = b.professional_id
-#
-#         WHERE p.status='approved'
-#         GROUP BY p.professional_id
-#         ORDER BY {order_clause}
-#     """
-#
-#     cursor.execute(query)
-#     professionals = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({"professionals": professionals}), 200
-#
-# # ------------------------ ALL BOOKINGS OF CUSTOMER ------------------------
-# @customer_bp.route("/bookings", methods=["GET"])
-#
-# def customer_all_bookings(user_id):
-#
-#     status = request.args.get("status")  # optional filter
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             b.booking_id,
-#             b.booking_date,
-#             b.booking_time,
-#             b.amount,
-#             b.status,
-#             b.live_status,
-#             b.service_name,
-#             b.created_at,
-#
-#             s.category,
-#             s.description,
-#
-#             p.professional_id,
-#             p.name AS professional_name,
-#             p.phone AS professional_phone,
-#             p.skill AS professional_skill
-#
-#         FROM bookings b
-#         JOIN professionals p ON b.professional_id = p.professional_id
-#         JOIN services s ON b.service_id = s.service_id
-#         WHERE b.user_id = %s
-#     """
-#
-#     params = [user_id]
-#
-#     if status:
-#         query += " AND b.status = %s"
-#         params.append(status)
-#
-#     query += " ORDER BY b.created_at DESC"
-#
-#     cursor.execute(query, tuple(params))
-#     bookings = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "total_bookings": len(bookings),
-#         "status_filter": status if status else "all",
-#         "bookings": bookings
-#     }), 200
-#
-#
-# # ------------------------ BOOKING DETAILS ------------------------
-# @customer_bp.route("/bookings/<int:booking_id>", methods=["GET"])
-#
-# def booking_details(user_id, booking_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             b.booking_id,
-#             b.booking_date,
-#             b.booking_time,
-#             b.amount,
-#             b.status,
-#             b.live_status,
-#             b.service_name,
-#             b.created_at,
-#
-#             u.name AS customer_name,
-#             u.phone AS customer_phone,
-#
-#             p.professional_id,
-#             p.name AS professional_name,
-#             p.phone AS professional_phone,
-#             p.skill AS professional_skill,
-#
-#             s.category,
-#             s.description,
-#             s.price
-#
-#         FROM bookings b
-#         JOIN users u ON b.user_id = u.user_id
-#         JOIN professionals p ON b.professional_id = p.professional_id
-#         JOIN services s ON b.service_id = s.service_id
-#
-#         WHERE b.booking_id = %s AND b.user_id = %s
-#     """
-#
-#     cursor.execute(query, (booking_id, user_id))
-#     booking = cursor.fetchone()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     if not booking:
-#         return jsonify({"message": "Booking not found"}), 404
-#
-#     return jsonify({"booking": booking}), 200
-#
-#
-# # ------------------------ BOOKING SUMMARY ------------------------
-# @customer_bp.route("/bookings/summary", methods=["GET"])
-#
-# def booking_summary(user_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             COUNT(*) AS total,
-#             SUM(status='pending') AS pending,
-#             SUM(status='accepted') AS accepted,
-#             SUM(status='completed') AS completed,
-#             SUM(status='cancelled') AS cancelled
-#         FROM bookings
-#         WHERE user_id = %s
-#     """
-#
-#     cursor.execute(query, (user_id,))
-#     summary = cursor.fetchone()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({"summary": summary}), 200
-#
-#
-# # ------------------------ ADD RATING & REVIEW ------------------------
-# @customer_bp.route("/review", methods=["POST"])
-#
-# def add_review(user_id):
-#
-#     data = request.get_json()
-#     booking_id = data.get("booking_id")
-#     rating = data.get("rating")
-#     review = data.get("review", "")
-#
-#     # validation
-#     if not booking_id or not rating:
-#         return jsonify({"message": "Booking ID and rating are required"}), 400
-#
-#     if int(rating) < 1 or int(rating) > 5:
-#         return jsonify({"message": "Rating must be between 1 and 5"}), 400
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     # check booking
-#     cursor.execute("""
-#         SELECT booking_id, professional_id, status
-#         FROM bookings
-#         WHERE booking_id=%s AND user_id=%s
-#     """, (booking_id, user_id))
-#
-#     booking = cursor.fetchone()
-#
-#     if not booking:
-#         return jsonify({"message": "Booking not found"}), 404
-#
-#     # ⭐ main condition: service must be completed
-#     if booking["status"] != "completed":
-#         return jsonify({"message": "You can review only after service completion"}), 400
-#
-#     professional_id = booking["professional_id"]
-#
-#     # check already reviewed
-#     cursor.execute("""
-#         SELECT * FROM rating_reviews
-#         WHERE booking_id=%s
-#     """, (booking_id,))
-#
-#     if cursor.fetchone():
-#         return jsonify({"message": "Review already submitted for this booking"}), 400
-#
-#     # insert review
-#     cursor.execute("""
-#         INSERT INTO rating_reviews (booking_id, user_id, professional_id, rating, review)
-#         VALUES (%s, %s, %s, %s, %s)
-#     """, (booking_id, user_id, professional_id, rating, review))
-#
-#     conn.commit()
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "message": "Review submitted successfully",
-#         "rating": rating
-#     }), 201
-#
-#
-# # ------------------------ VIEW PROFESSIONAL REVIEWS ------------------------
-# @customer_bp.route("/professionals/<int:professional_id>/reviews", methods=["GET"])
-# def professional_reviews(professional_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     query = """
-#         SELECT
-#             r.review_id,
-#             r.rating,
-#             r.review,
-#             r.created_at,
-#             u.name AS customer_name,
-#             b.service_name
-#         FROM rating_reviews r
-#         JOIN users u ON r.user_id = u.user_id
-#         JOIN bookings b ON r.booking_id = b.booking_id
-#         WHERE r.professional_id = %s
-#         ORDER BY r.created_at DESC
-#     """
-#
-#     cursor.execute(query, (professional_id,))
-#     reviews = cursor.fetchall()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "total_reviews": len(reviews),
-#         "reviews": reviews
-#     }), 200
-#
-#
-#
-# # ------------------------ PROFESSIONAL AVG RATING (Auto calculation)------------------------
-# @customer_bp.route("/professionals/<int:professional_id>/rating", methods=["GET"])
-# def professional_avg_rating(professional_id):
-#
-#     conn = connection()
-#     cursor = conn.cursor(dictionary=True)
-#
-#     cursor.execute("""
-#         SELECT
-#             ROUND(AVG(rating), 1) AS avg_rating,
-#             COUNT(*) AS total_reviews
-#         FROM rating_reviews
-#         WHERE professional_id = %s
-#     """, (professional_id,))
-#
-#     result = cursor.fetchone()
-#
-#     cursor.close()
-#     conn.close()
-#
-#     return jsonify({
-#         "professional_id": professional_id,
-#         "avg_rating": result["avg_rating"] if result["avg_rating"] else 0,
-#         "total_reviews": result["total_reviews"]
-#     }), 200
+
+
+
+
+
+
+
+
+
+# ---------------- PROFILE MANAGEMENT ----------------
+@customer_bp.route("/profile", methods=["GET"])
+@customer_token_required
+def view_profile(user_id):
+    """
+    View customer profile
+    """
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT user_id, name, email, phone, address, created_at FROM users WHERE user_id=%s", (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        # Convert datetime to string
+        user["created_at"] = str(user["created_at"])
+        return jsonify({"profile": user}), 200
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@customer_bp.route("/profile/update", methods=["PUT"])
+@customer_token_required
+def update_profile(user_id):
+    """
+    Update customer profile: name, phone, address
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "Request body is missing"}), 400
+
+    name = data.get("name")
+    phone = data.get("phone")
+    address = data.get("address")
+
+    if not any([name, phone, address]):
+        return jsonify({"message": "At least one field is required to update"}), 400
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        # Build dynamic update query
+        updates = []
+        params = []
+
+        if name:
+            updates.append("name=%s")
+            params.append(name)
+        if phone:
+            updates.append("phone=%s")
+            params.append(phone)
+        if address:
+            updates.append("address=%s")
+            params.append(address)
+
+        params.append(user_id)
+
+        sql = f"UPDATE users SET {', '.join(updates)} WHERE user_id=%s"
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+#CUSTOMER DASHBOARD
+@customer_bp.route("/dashboard", methods=["GET"])
+@customer_token_required
+def customer_dashboard(user_id):
+    """
+    Dashboard summary for customer bookings
+    """
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Total bookings
+        cursor.execute("SELECT COUNT(*) AS total FROM bookings WHERE user_id=%s", (user_id,))
+        total_bookings = cursor.fetchone()["total"]
+
+        # Completed bookings
+        cursor.execute("SELECT COUNT(*) AS completed FROM bookings WHERE user_id=%s AND status='completed'", (user_id,))
+        completed = cursor.fetchone()["completed"]
+
+        # Pending bookings
+        cursor.execute("SELECT COUNT(*) AS pending FROM bookings WHERE user_id=%s AND status='pending'", (user_id,))
+        pending = cursor.fetchone()["pending"]
+
+        # Accepted bookings
+        cursor.execute("SELECT COUNT(*) AS accepted FROM bookings WHERE user_id=%s AND status='accepted'", (user_id,))
+        accepted = cursor.fetchone()["accepted"]
+
+        # Upcoming booking (next booking based on date & time)
+        cursor.execute("""
+            SELECT booking_id, service_name, booking_date, booking_time, status 
+            FROM bookings
+            WHERE user_id=%s AND status IN ('pending','accepted')
+            ORDER BY booking_date ASC, booking_time ASC
+            LIMIT 1
+        """, (user_id,))
+        upcoming = cursor.fetchone()
+
+        # Last booking (most recent)
+        cursor.execute("""
+            SELECT booking_id, service_name, booking_date, booking_time, status 
+            FROM bookings
+            WHERE user_id=%s
+            ORDER BY booking_date DESC, booking_time DESC
+            LIMIT 1
+        """, (user_id,))
+        last_booking = cursor.fetchone()
+
+        # Convert datetime objects to string
+        for b in [upcoming, last_booking]:
+            if b:
+                b["booking_date"] = str(b["booking_date"])
+                b["booking_time"] = str(b["booking_time"])
+
+        return jsonify({
+            "total_bookings": total_bookings,
+            "completed": completed,
+            "pending": pending,
+            "accepted": accepted,
+            "upcoming_booking": upcoming,
+            "last_booking": last_booking
+        }), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
