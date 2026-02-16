@@ -12,9 +12,13 @@ export const CustomerSignup = async (signupData) => {
 
 export const ProfessionalSignup = async (signupData) => {
   try {
+    const isFormData = signupData instanceof FormData;
     const response = await axiosInstance.post(
       "/professional/signup",
-      signupData
+      signupData,
+      {
+        headers: isFormData ? { "Content-Type": "multipart/form-data" } : {},
+      }
     );
     return response.data;
   } catch (error) {

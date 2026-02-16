@@ -11,7 +11,19 @@ export const professionalSignupSchema = z.object({
         )
         .nonempty("Password is required"),
     skill: z.string().min(2, "Please enter your skills").nonempty("Skill is required"),
+    phone: z
+        .string()
+        .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits")
+        .nonempty("Phone number is required"),
+    address: z.string().min(5, "Address must be at least 5 characters long").nonempty("Address is required"),
     experience: z.string().nonempty("Experience is required"),
+    file: z
+        .any()
+        .refine((files) => files?.length > 0, "Proof of work/CV is required")
+        .refine(
+            (files) => files?.[0]?.size <= 5000000,
+            `Max file size is 5MB.`
+        ),
     terms: z.literal(true, {
         message: "You must accept the terms and conditions",
     }),

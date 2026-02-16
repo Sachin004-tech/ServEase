@@ -7,43 +7,52 @@ import { professionalUserSignup } from "../../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { professionalSignupSchema } from "../../utils/schema/professionalSignupSchema";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const SignUpProfessional = () => {
-
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(professionalSignupSchema),
   });
 
+  const selectedFile = watch("file");
+
   const onSubmit = async (data) => {
     try {
-      //  Dispatching Redux thunk action
-      // This sends user data to Redux → then to API → backend
-      const resultAction = await dispatch(
-        professionalUserSignup({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          skill: data.skill,
-          experience: data.experience,
-        })
-      )
-      const res = unwrapResult(resultAction)         // unwrapResult extracts the actual payload returned from the thunk
-      console.log(res)
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      formData.append("skill", data.skill);
+      formData.append("experience", data.experience);
+      formData.append("phone", data.phone);
+
+      if (data.file && data.file[0]) {
+        formData.append("document", data.file[0]);
+      }
+
+      const resultAction = await dispatch(professionalUserSignup(formData));
+      const res = unwrapResult(resultAction);
+      console.log(res);
       if (res.success) {
-        alert("Signup successful!");
+        navigate("/");
+        toast.success(res.message || "Signup successful!");
       } else {
-        alert(res.message || "Email is already registered!");
+        toast.error(res.message || "Email is already registered!");
       }
     } catch (error) {
       console.error("Signup error:", error);
-      alert(
+      toast.error(
         error.message || "Signup failed. Please try again."
       );
     }
@@ -135,6 +144,21 @@ const SignUpProfessional = () => {
                   <p className="text-xs text-red-500 mt-1">{errors.skill.message}</p>
                 )}
               </div>
+              {/* {PhoneNumber} */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  {...register("phone")}
+                  placeholder="Enter your Phone Number"
+                  className={`w-full px-4 py-2 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
+                )}
+              </div>
 
               {/* Experience */}
               <div className="flex flex-col gap-2">
@@ -151,6 +175,49 @@ const SignUpProfessional = () => {
                   <p className="text-xs text-red-500 mt-1">{errors.experience.message}</p>
                 )}
               </div>
+
+              {/* FILE UPLOAD */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Upload Resume / CV
+                </label>
+                <div className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${errors.file ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-300 dark:border-gray-600 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10'}`}>
+                  <input
+                    type="file"
+                    {...register("file")}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  />
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                    <svg className={`w-8 h-8 mb-4 transition-colors ${selectedFile?.[0] ? 'text-indigo-600' : 'text-gray-500 dark:text-gray-400'}`} aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                    </svg>
+                    {selectedFile?.[0] ? (
+                      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <p className="mb-2 text-sm text-indigo-600 font-semibold truncate max-w-xs">
+                          {selectedFile[0].name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {(selectedFile[0].size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="font-semibold text-indigo-600">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          PDF, DOCX, DOC (MAX. 5MB)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {errors.file && (
+                  <p className="text-xs text-red-500 mt-1">{errors.file.message}</p>
+                )}
+              </div>
+
 
               {/* TERMS CHECKBOX */}
               <div className="flex items-center gap-2">

@@ -8,8 +8,10 @@ import { unwrapResult } from "@reduxjs/toolkit"; //unwrapResult – Redux Toolki
 import { zodResolver } from "@hookform/resolvers/zod";
 import { customerSignupSchema } from "../../utils/schema/customerSignupSchema";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const SignUpCustomer = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth); //Redux store se authentication-related data nikal rahe hain (state.auth se)
 
@@ -38,6 +40,7 @@ const SignUpCustomer = () => {
       console.log(res);
 
       if (res.success) {
+        navigate("/");
         toast.success("Signup successful!");
       } else {
         toast.error("Email is already registered!");
