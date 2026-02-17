@@ -32,25 +32,43 @@ def connection(): #databasse connection
     )
 
 
-def send_email(to_mail, subject, body):# email function
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+
+def send_email(to_mail, subject, body):
+
     sender_email = "servease.officials@gmail.com"
-    sender_password = "mzaiztnblvgeasjp" # gmail app password
+    sender_password = "mzaiztnblvgeasjp"   # app password
 
     message = MIMEMultipart()
     message["From"] = sender_email
     message["To"] = to_mail
     message["Subject"] = subject
+    message.attach(MIMEText(body, "plain"))
 
-    message.attach(MIMEText(body,"plain"))
     try:
-        server = smtplib.SMTP("smtp.gmail.com",587)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(message)
-        server.quit()
-        print("Email sent successfully")
+        print("Sending mail to:", to_mail)
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+
+            server.sendmail(
+                sender_email,
+                to_mail,
+                message.as_string()
+            )
+
+        print("✅ Email sent successfully")
+        return True
+
     except Exception as e:
-        print("Email sending failed:", str(e))
+        print("❌ Email sending failed:", str(e))
+        return False
+
+
 
 cloudinary.config(
   cloud_name = "dv5gddq6b",

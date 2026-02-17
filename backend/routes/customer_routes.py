@@ -17,11 +17,14 @@ from datetime import timedelta, time, date
 
 customer_bp = Blueprint('customer', __name__)
 
+
 @customer_bp.route('/signup', methods=['POST'])
 def customer_signup():
+
     data = request.get_json()
-    if not data :
-        return jsonify({"message":"Request body is missing"}),400
+
+    if not data:
+        return jsonify({"message": "Request body missing"}), 400
 
     name = data.get("name")
     username = data.get("username")
@@ -30,83 +33,101 @@ def customer_signup():
     phone = data.get("phone")
     address = data.get("address")
 
-    if not (name and email and password):  # required field validation
-        return jsonify({"message": "Name, Email and Password are required"}), 400
+    if not (name and email and password):
+        return jsonify({"message": "Name, Email, Password required"}), 400
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
-    try:  #Check if email already exists
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+    try:
+        # check existing
+        cursor.execute("SELECT user_id FROM users WHERE email=%s", (email,))
         if cursor.fetchone():
-            return jsonify({"message":"Email already registered"}), 400
+            return jsonify({"message": "Email already exists"}), 400
 
-        #Hashing
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt())
+        # hash password
+        hashed_password = bcrypt.hashpw(
+            password.encode(),
+            bcrypt.gensalt()
+        ).decode()
 
-        cursor.execute("""INSERT INTO users (name , email, password, phone , address) VALUES
-            (%s,%s,%s,%s,%s) """, (name, email,hashed_password.decode('utf-8'), phone , address))
+        # insert
+        cursor.execute("""
+            INSERT INTO users(name,username,email,password,phone,address)
+            VALUES(%s,%s,%s,%s,%s,%s)
+        """, (name, username, email, hashed_password, phone, address))
 
         conn.commit()
 
-
-        #Send email sfter signup
+        # SEND EMAIL (SAFE WAY)
         subject = "Welcome to ServEase"
         body = f"""
-                Hello {name},
+Hello {name},
 
-                Your account has been successfully created on ServEase.
+Your account has been created successfully.
 
-                Username: {username}
+Thanks for joining ServEase.
+"""
 
-                Thank you for choosing ServEase.
+        email_sent = send_email(email, subject, body)
 
-                Regards,
-                ServEase Team
-                """
+        email_sent = send_email(email, subject, body)
+        print("EMAIL STATUS:", email_sent)
 
-        send_email(email, subject, body)
-        return jsonify({"message":"Signup successful"}),201
+        return jsonify({
+
+            "email_sent": email_sent,
+            "message": "Signup successful. Mail sent successful to the registered mail id"
+        }), 201
+
+    except Exception as e:
+        print("Signup Error:", str(e))
+        return jsonify({"message": "Server error"}), 500
+
     finally:
         cursor.close()
         conn.close()
 
+
+
 @customer_bp.route('/login', methods=['POST'])
 def customer_login():
+
     data = request.get_json()
 
     if not data:
-        return jsonify({"message": "Request body is missing"}), 400
+        return jsonify({"message": "Request body missing"}), 400
 
-    login_input = data.get("email") # it can be either email or username
+    login_input = data.get("email")
     password = data.get("password")
 
     if not login_input or not password:
-        return jsonify({"message": "Email/Username and Password required"}), 400
+        return jsonify({"message": "Email/Username & password required"}), 400
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
         cursor.execute("""
-                    SELECT * FROM users 
-                    WHERE email=%s OR username=%s
-                """, (login_input, login_input))
+            SELECT * FROM users
+            WHERE email=%s OR username=%s
+        """, (login_input, login_input))
 
         user = cursor.fetchone()
 
         if not user:
             return jsonify({"message": "Invalid credentials"}), 401
 
-        # 🔴 Blocked user check
         if user["is_blocked"] == 1:
-            return jsonify({"message": "Your account has been blocked"}), 403
+            return jsonify({"message": "Account blocked"}), 403
 
-        # Check password
-        if not bcrypt.checkpw(password.encode('utf-8'), user["password"].encode('utf-8')):
+        if not bcrypt.checkpw(
+                password.encode(),
+                user["password"].encode()):
+
             return jsonify({"message": "Invalid credentials"}), 401
 
-        # Create JWT
+        # JWT TOKEN
         payload = {
             "user_id": user["user_id"],
             "email": user["email"],
@@ -116,41 +137,42 @@ def customer_login():
 
         token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-        # Fix for some PyJWT versions
         if isinstance(token, bytes):
-            token = token.decode('utf-8')
+            token = token.decode()
 
-        # Send login alert email
-        subject ="ServEase Login Alert"
+        # LOGIN ALERT EMAIL (SAFE)
+        subject = "ServEase Login Alert"
         body = f"""
-                Hello {user['name']},
+Hello {user['name']},
 
-                You have successfully logged into your ServEase account.
+You have logged into your ServEase account.
 
-                If this was not you, please contact support immediately.
+If this wasn't you, contact support.
+"""
 
-                Regards,
-                ServEase Team
-                """
-
-        send_email(user["email"], subject, body)
+        email_sent = send_email(user["email"], subject, body)
 
         return jsonify({
-            "message": "Login successful",
+            "message": "Login successful. Mail sent successful to the registered mail id",
             "token": token,
-            "user": {        # it can re remove but before discuss
+            "email_sent": email_sent,
+            "user": {
                 "user_id": user["user_id"],
                 "name": user["name"],
                 "email": user["email"],
                 "phone": user["phone"],
-                "address": user["address"],
-                "created_at": str(user["created_at"])
+                "address": user["address"]
             }
         }), 200
+
+    except Exception as e:
+        print("Login Error:", str(e))
+        return jsonify({"message": "Server error"}), 500
 
     finally:
         cursor.close()
         conn.close()
+
 def customer_token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
