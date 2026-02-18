@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 // import { CustomerSignup } from "../api/auth";
@@ -9,11 +9,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { customerSignupSchema } from "../../utils/schema/customerSignupSchema";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const SignUpCustomer = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth); //Redux store se authentication-related data nikal rahe hain (state.auth se)
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!passwordVisible);
+  };
 
   const {
     register,
@@ -126,18 +132,23 @@ const SignUpCustomer = () => {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
-              <input
-                type="password"
-                {...register("password")}
-                placeholder="••••••••"
-                className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={passwordVisible ? "text" : "password"}
+                  {...register("password")}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-3 pr-10 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                />
+                <span
+                  className="absolute right-3 cursor-pointer text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  onClick={togglePasswordVisibility}
+                >
+                  {passwordVisible ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                </span>
+              </div>
               {errors.password && (
                 <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
               )}
-              {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Password must be at least 6 characters long
-              </p> */}
             </div>
 
             {/* PHONE NUMBER */}
