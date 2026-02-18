@@ -86,7 +86,7 @@ const Navbar = () => {
           {/* Login Button */}
           <button
             onClick={() => navigate("/login")}
-            className="hidden sm:block px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm rounded-full transition shadow-md hover:shadow-lg active:scale-95"
+            className="hidden sm:block px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm rounded-full transition shadow-md hover:shadow-lg active:scale-95 hover:cursor-pointer"
           >
             Login
           </button>

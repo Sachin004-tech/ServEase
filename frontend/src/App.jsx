@@ -5,8 +5,6 @@ import Navbar from "./layouts/Navbar";
 import SignUpCustomer from "./pages/register/SignUpCustomer";
 import SignUpProfessional from "./pages/register/SignUpProfessional";
 import HomePage from "./pages/HomePage";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import { useSelector } from "react-redux";
 import { ToastContainer } from "react-toastify";
 
 function App() {
@@ -18,9 +16,6 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signupcustomer" element={<SignUpCustomer />} />
       <Route path="/signupprofessional" element={<SignUpProfessional />} />
-
-      {/* admin Routes */}
-      <Route path="/admin/admindashboard" element={<AdminDashboard />} />
 
     </Routes>
     <ToastContainer

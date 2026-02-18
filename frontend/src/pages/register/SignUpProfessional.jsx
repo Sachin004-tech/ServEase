@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ProfessionalSignup } from "../../api/auth";
@@ -10,11 +10,13 @@ import { professionalSignupSchema } from "../../utils/schema/professionalSignupS
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const SignUpProfessional = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const {
     register,
@@ -26,6 +28,10 @@ const SignUpProfessional = () => {
   });
 
   const selectedFile = watch("file");
+
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!passwordVisible);
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -118,12 +124,20 @@ const SignUpProfessional = () => {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Password
                 </label>
-                <input
-                  type="password"
-                  {...register("password")}
-                  placeholder="••••••••"
-                  className={`w-full px-4 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={passwordVisible ? "text" : "password"}
+                    {...register("password")}
+                    placeholder="••••••••"
+                    className={`w-full px-4 py-2 pr-10 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                  />
+                  <span
+                    className="absolute right-3 cursor-pointer text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {passwordVisible ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                  </span>
+                </div>
                 {errors.password && (
                   <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
                 )}
