@@ -4,11 +4,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import bcrypt
 import jwt
 import datetime
-from config import connection, send_email
+from config import connection, send_email, add_notification
 from functools import wraps
 import random  # for the password reset
 from config import SECRET_KEY
 from datetime import timedelta, time, date
+
+
+
 
 
 
@@ -480,6 +483,8 @@ def create_booking(user_id):
 
         conn.commit()
 
+
+
         return jsonify({
             "message": "Booking created successfully"
         }), 201
@@ -488,7 +493,7 @@ def create_booking(user_id):
         cursor.close()
         conn.close()
 @customer_bp.route("/bookings/my", methods=["GET"])
-@customer_token_required
+@customer_token_required            #Customer ke sari bookings fetch karna
 def my_bookings(user_id):
 
     conn = connection()
@@ -517,127 +522,119 @@ def my_bookings(user_id):
         cursor.close()
         conn.close()
 
-
-
-# -------- CUSTOMER MY BOOKINGS (ALL HISTORY) --------
-@customer_bp.route("/bookings/all-my", methods=["GET"])
+@customer_bp.route("/bookings/cancel/<int:booking_id>", methods=["PUT"])
 @customer_token_required
-def my_all_bookings(user_id):
-
-    # optional filter
-    status = request.args.get("status", "").strip().lower()
-
+def cancel_booking(user_id, booking_id):
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
+        cursor.execute("""
+        UPDATE bookings SET status='cancelled' WHERE booking_id=%s AND user_id=%s        
+        AND status IN('pending','accepted')
+        """, (booking_id,user_id))
+        conn.commit()
 
-        sql = """
-            SELECT 
-                b.booking_id,
-                b.service_name,
-                b.amount,
-                b.booking_date,
-                b.booking_time,
-                b.status,
-                b.live_status,
-                b.created_at,
-                p.name AS professional_name,
-                p.phone AS professional_phone,
-                p.skill AS professional_skill
-            FROM bookings b
-            JOIN professionals p
-            ON b.professional_id = p.professional_id
-            WHERE b.user_id = %s
-        """
 
-        params = [user_id]
+        if cursor.rowcount == 0:
+            return jsonify({"message":"Cannot cancel booking"}),400
+        return jsonify({"message":"Booking cancelled"}),200
 
-        # status filter (optional)
-        if status:
-            sql += " AND b.status = %s"
-            params.append(status)
-
-        # latest booking first (history + current)
-        sql += " ORDER BY b.booking_date DESC, b.booking_time DESC"
-
-        cursor.execute(sql, tuple(params))
-
-        bookings = cursor.fetchall()
-
-        # optional message if empty
-        if not bookings:
-            return jsonify({
-                "message": "No bookings found",
-                "data": []
-            }), 200
-        for row in bookings:
-            for key in row:
-                if row[key] is not None:
-                    row[key] = str(row[key])
-
-        return jsonify({
-            "total_bookings": len(bookings),
-            "data": bookings
-        }), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}),500
 
     finally:
         cursor.close()
         conn.close()
 
-@customer_bp.route("/bookings/details/<int:booking_id>", methods=["GET"])
+@customer_bp.route("/bookings/<int:booking_id>", methods=["GET"])
 @customer_token_required
-def booking_details_customer(user_id, booking_id):
+def booking_details(user_id, booking_id):
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+                    SELECT b.*, p.name as professional_name
+                    FROM bookings b
+                    LEFT JOIN professionals p
+                    ON b.professional_id = p.professional_id
+                    WHERE b.booking_id=%s AND b.user_id=%s
+                """, (booking_id, user_id))
+        booking = cursor.fetchone()
+        if not booking:
+            return jsonify({"message":"Booking not found"}),404
+        return jsonify(booking),200
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@customer_bp.route("/bookings/<int:booking_id>/professional", methods=["GET"])
+@customer_token_required
+def get_professional_details(user_id, booking_id):
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
         cursor.execute("""
-            SELECT b.*, p.name AS professional_name,
-                   p.phone AS professional_phone,
-                   p.skill
+            SELECT 
+                b.status,
+                b.live_status,
+
+                p.professional_id,
+                p.name,
+                p.phone,
+                p.email,
+                p.skill
+
             FROM bookings b
-            JOIN professionals p
+            LEFT JOIN professionals p
             ON b.professional_id = p.professional_id
+
             WHERE b.booking_id=%s
             AND b.user_id=%s
         """, (booking_id, user_id))
 
-        booking = cursor.fetchone()
+        data = cursor.fetchone()
 
-        if not booking:
-            return jsonify({"message": "Booking not found"}), 404
+        if not data:
+            return jsonify({"message":"Booking not found"}),404
 
+        # 🔐 Important Security Rule
+        if data["status"] != "accepted":
+            return jsonify({
+                "message":"Professional details available after acceptance only"
+            }),403
 
-        for key in booking:
-            if booking[key] is not None:
-                booking[key] = str(booking[key])
-
-        return jsonify(booking), 200
-    except Exception as e:
-        return jsonify({"error":str(e)}),500
+        return jsonify(data),200
 
     finally:
         cursor.close()
         conn.close()
 
-@customer_bp.route("/bookings/cancel/<int:booking_id>", methods=["PUT"])
+@customer_bp.route("/bookings/live/<int:booking_id>", methods=["GET"])
 @customer_token_required
-def cancel_booking(user_id, booking_id):
+def live_tracking(user_id, booking_id):
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
-
         cursor.execute("""
-            SELECT b.*, p.email AS pro_email
+            SELECT 
+                b.booking_id,
+                b.live_status,
+                b.status,
+                b.booking_date,
+                b.booking_time,
+
+                p.name AS professional_name,
+                p.phone AS professional_phone,
+                p.skill AS professional_skill
+
             FROM bookings b
-            JOIN professionals p
-            ON b.professional_id = p.professional_id
+            LEFT JOIN professionals p
+            ON b.professional_id=p.professional_id
+
             WHERE b.booking_id=%s
             AND b.user_id=%s
         """, (booking_id, user_id))
@@ -647,25 +644,38 @@ def cancel_booking(user_id, booking_id):
         if not booking:
             return jsonify({"message":"Booking not found"}),404
 
-        if booking["status"] not in ["pending", "accepted"]:
-            return jsonify({"message":"Cannot cancel this booking"}),400
-
-        cursor.execute("""
-            UPDATE bookings
-            SET status='cancelled',
-                live_status='cancelled'
-            WHERE booking_id=%s
-        """, (booking_id,))
-
-        conn.commit()
-
-        return jsonify({
-            "message":"Booking cancelled successfully"
-        }),200
+        return jsonify(booking),200
 
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

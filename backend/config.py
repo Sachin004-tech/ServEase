@@ -78,6 +78,27 @@ cloudinary.config(
 )
 
 
+def add_notification(
+        user_id=None,
+        professional_id=None,
+        message="",
+        n_type="general"
+):
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO notifications
+            (user_id, professional_id, message, type, status)
+            VALUES (%s,%s,%s,%s,'unread')
+        """, (user_id, professional_id, message, n_type))
+
+        conn.commit()
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 

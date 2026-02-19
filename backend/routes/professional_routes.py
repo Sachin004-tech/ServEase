@@ -10,6 +10,7 @@ import os
 from config import SECRET_KEY
 import cloudinary.uploader
 import random
+from config import add_notification
 
 
 
@@ -489,6 +490,231 @@ def delete_service(pro_id, service_id):
         conn.close()
 
 
+#--------------------------------------------VIEW ALL BOOKING REQUEST------------------------------
+@professional_bp.route("bookings/requests", methods=["GET"])
+@professional_token_required
+def booking_request(professional_id):
+    conn = connection()
+    cursor=conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+                    SELECT b.*, u.name as customer_name
+                    FROM bookings b
+                    LEFT JOIN users u
+                    ON b.user_id = u.user_id
+                    WHERE b.professional_id=%s
+                    ORDER BY b.created_at DESC
+                """, (professional_id,))
+
+        data = cursor.fetchall()
+        return jsonify(data), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@professional_bp.route("/bookings/accept/<int:booking_id>", methods=["PUT"])
+@professional_token_required
+def accept_booking(professional_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        print("\n========== ACCEPT BOOKING DEBUG ==========")
+        print("📌 Professional ID (token):", professional_id)
+        print("📌 Booking ID:", booking_id)
+
+        # 1️⃣ Check booking first (DEBUG PURPOSE)
+        cursor.execute("""
+            SELECT booking_id, user_id, professional_id, status
+            FROM bookings
+            WHERE booking_id=%s
+        """, (booking_id,))
+
+        booking_data = cursor.fetchone()
+        print("📦 Booking from DB:", booking_data)
+
+        if not booking_data:
+            print("❌ Booking does not exist")
+            return jsonify({"message": "Booking not found"}), 404
+
+        # 2️⃣ Check ownership
+        if booking_data["professional_id"] != professional_id:
+            print("❌ Professional mismatch")
+            return jsonify({
+                "message": "This booking is not assigned to you"
+            }), 403
+
+        # 3️⃣ Check status
+        if booking_data["status"] != "pending":
+            print("❌ Booking status not pending:", booking_data["status"])
+            return jsonify({
+                "message": f"Booking already {booking_data['status']}"
+            }), 400
+
+        # 4️⃣ Update booking status
+        cursor.execute("""
+            UPDATE bookings
+            SET status='accepted'
+            WHERE booking_id=%s
+        """, (booking_id,))
+
+        conn.commit()
+
+        print("✅ Booking status updated")
+
+        # 5️⃣ Send notification to customer
+        print("📨 Sending notification to user:", booking_data["user_id"])
+
+        add_notification(
+            user_id=booking_data["user_id"],
+            message="Your booking has been accepted",
+            n_type="booking"
+        )
+
+        print("🎉 Notification sent successfully")
+        print("==========================================\n")
+
+        return jsonify({"message": "Booking accepted"}), 200
+
+    except Exception as e:
+        print("🔥 ERROR:", str(e))
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@professional_bp.route("/bookings/reject/<int:booking_id>", methods=["PUT"])
+@professional_token_required
+def reject_booking(professional_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE bookings
+            SET status='rejected'
+            WHERE booking_id=%s
+            AND professional_id=%s
+            AND status='pending'
+        """, (booking_id, professional_id))
+
+        conn.commit()
+
+
+        return jsonify({"message":"Booking rejected"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@professional_bp.route("/bookings/<int:booking_id>", methods=["GET"])
+@professional_token_required
+def booking_detail(professional_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT b.*, u.name as customer_name, u.phone
+            FROM bookings b
+            LEFT JOIN users u
+            ON b.user_id=u.user_id
+            WHERE b.booking_id=%s
+            AND b.professional_id=%s
+        """, (booking_id, professional_id))
+
+        data = cursor.fetchone()
+
+        if not data:
+            return jsonify({"message":"Booking not found"}),404
+
+        return jsonify(data),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@professional_bp.route("/bookings/status/<int:booking_id>", methods=["PUT"])
+@professional_token_required
+def update_live_status(professional_id, booking_id):
+
+    data = request.get_json()
+    live_status = data.get("live_status")
+
+    # allowed live status from new table
+    allowed = [
+        "on_the_way",
+        "arrived",
+        "work_started",
+        "completed",
+        "failed",
+        "cancelled"
+    ]
+
+    if live_status not in allowed:
+        return jsonify({"message": "Invalid status"}), 400
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+
+        # update status logic (VERY IMPORTANT)
+        status = None
+
+        if live_status == "completed":
+            status = "completed"
+
+        elif live_status in ["cancelled", "failed"]:
+            status = "cancelled"
+
+        # update query
+        if status:
+            cursor.execute("""
+                UPDATE bookings
+                SET live_status=%s,
+                    status=%s
+                WHERE booking_id=%s
+                AND professional_id=%s
+            """, (live_status, status, booking_id, professional_id))
+
+        else:
+            cursor.execute("""
+                UPDATE bookings
+                SET live_status=%s
+                WHERE booking_id=%s
+                AND professional_id=%s
+            """, (live_status, booking_id, professional_id))
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Booking not found"}), 404
+
+        return jsonify({
+            "message": "Status updated successfully",
+            "live_status": live_status
+        }), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -556,3 +782,5 @@ def professional_dashboard(pro_id):
     finally:
         cursor.close()
         conn.close()
+
+

@@ -3,6 +3,9 @@ from config import connection, send_email
 
 admin_bp = Blueprint("admin", __name__)
 
+
+
+
 @admin_bp.route("/login", methods=["POST"])
 
 def admin_login():
