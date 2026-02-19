@@ -1,19 +1,28 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import MenuIcon from "@mui/icons-material/Menu";
-import { Badge, IconButton } from "@mui/material";
+import { Badge, IconButton, Avatar } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../redux/feature/auth/authSlice";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import EventNoteIcon from "@mui/icons-material/EventNote";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  // Assuming cart is in redux or local state. For now, we'll placeholder it or use local state if not in redux.
-  // Looking at HomePage.jsx, it seems to be local state there. 
-  // If we want it to persist across pages, it should be in Redux.
-  // For now, I'll just keep it at 0 or try to select it from store if it exists.
+  const dispatch = useDispatch();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { user } = useSelector((state) => state.auth);
   const cart = useSelector((state) => state.cart?.items || []);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/");
+    setDropdownOpen(false);
+  };
 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between py-3 px-4 md:px-8 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 transition-all">
@@ -83,23 +92,75 @@ const Navbar = () => {
             </Badge>
           </IconButton>
 
-          {/* Login Button */}
-          <button
-            onClick={() => navigate("/login")}
-            className="hidden sm:block px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm rounded-full transition shadow-md hover:shadow-lg active:scale-95"
-          >
-            Login
-          </button>
-
           {/* Book Now */}
           <button className="hidden md:block bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-full transition shadow-md hover:shadow-lg active:scale-95">
             Book Now
           </button>
 
-          {/* Mobile Menu Icon */}
-          <IconButton className="xl:hidden p-2 text-gray-700">
-            <MenuIcon />
-          </IconButton>
+          {/* User Profile / Login */}
+          {!user ? (
+            <button
+              onClick={() => navigate("/login")}
+              className="hidden sm:block px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm rounded-full transition shadow-md hover:shadow-lg active:scale-95 hover:cursor-pointer"
+            >
+              Login
+            </button>
+          ) : (
+            <div className="relative">
+              <IconButton
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="p-1 border-2 border-transparent hover:border-primary transition-all"
+              >
+                <Avatar
+                  src={user?.user?.profilePic || ""}
+                  alt={user?.user?.name || "User"}
+                  sx={{ width: 40, height: 40, bgcolor: "primary.main" }}
+                >
+                  {user?.user?.name?.charAt(0) || "U"}
+                </Avatar>
+              </IconButton>
+
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 mb-1">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                      {user?.user?.name || "User"}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {user?.user?.email || ""}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => { navigate("/help"); setDropdownOpen(false); }}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <HelpOutlineIcon fontSize="small" className="text-gray-400" />
+                    <span>Help Center</span>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate("/my-bookings"); setDropdownOpen(false); }}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <EventNoteIcon fontSize="small" className="text-gray-400" />
+                    <span>My Booking</span>
+                  </button>
+
+                  <div className="h-px bg-gray-100 dark:bg-gray-700 my-1 mx-2" />
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                  >
+                    <ExitToAppIcon fontSize="small" />
+                    <span className="font-semibold">Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </nav>
