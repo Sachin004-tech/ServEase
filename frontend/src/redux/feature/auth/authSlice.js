@@ -49,7 +49,7 @@ export const professionalUserSignup = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    user: null,
+    user: JSON.parse(localStorage.getItem("user")) || null,
     loading: false,
     error: null,
   },
@@ -57,6 +57,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.error = null;
+      localStorage.removeItem("user");
     },
   },
 
@@ -70,6 +71,7 @@ const authSlice = createSlice({
     builder.addCase(loginUser.fulfilled, (state, action) => {
       state.loading = false;
       state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
     });
 
     builder.addCase(loginUser.rejected, (state, action) => {
