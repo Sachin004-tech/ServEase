@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "../utils/schema/loginSchema";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import PasswordResetFlow from "./auth/PasswordResetFlow";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
@@ -122,6 +124,15 @@ const LoginPage = () => {
                       {errors.password.message}
                     </p>
                   )}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowResetModal(true)}
+                      className="text-xs text-indigo-600 hover:text-indigo-500 hover:underline transition-colors mt-1"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
                 </div>
 
                 {/* BUTTON */}
@@ -184,6 +195,16 @@ const LoginPage = () => {
           size="md"
         >
           <RoleSelection onClose={() => setShowModal(false)} />
+        </Modal>
+
+        {/* FORGOT PASSWORD MODAL */}
+        <Modal
+          isOpen={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          title="Reset Your Password"
+          size="md"
+        >
+          <PasswordResetFlow onComplete={() => setShowResetModal(false)} />
         </Modal>
       </div>
     </>

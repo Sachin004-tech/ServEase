@@ -36,3 +36,34 @@ export const CustomerLogin = async (loginData) => {
     throw error;  // Re-throw for Redux thunk to handle
   }
 };
+
+export const forgotPassword = async (payload) => {
+  try {
+    const response = await axiosInstance.post("/customer/forgot-password", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Forgot password error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const verifyOTP = async (payload) => {
+  try {
+    const response = await axiosInstance.post("/customer/verify-otp", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Verify OTP error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const resetPassword = async (payload) => {
+  try {
+    const response = await axiosInstance.post("/customer/reset-password", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Reset password error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+

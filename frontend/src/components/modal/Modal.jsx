@@ -24,7 +24,7 @@ const Modal = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-white text-xl "
+          className="absolute top-3 right-3 text-white text-xl hover:text-red-500 hover:cursor-pointer transition-colors"
         >
           ✕
         </button>
