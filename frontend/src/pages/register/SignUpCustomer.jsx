@@ -45,12 +45,8 @@ const SignUpCustomer = () => {
       const res = unwrapResult(resultAction);
       console.log(res);
 
-      if (res.success) {
-        navigate("/");
-        toast.success("Signup successful!");
-      } else {
-        toast.error("Email is already registered!");
-      }
+      toast.success(res.message || "Signup successful!");
+      navigate("/");
     } catch (error) {
       console.error("Signup error:", error);
       toast.error("Signup failed. Please try again.");

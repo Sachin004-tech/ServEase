@@ -27,6 +27,8 @@ const SignUpProfessional = () => {
     resolver: zodResolver(professionalSignupSchema),
   });
 
+  console.log("ERRORS:", errors);
+
   const selectedFile = watch("file");
 
   const togglePasswordVisibility = () => {
@@ -34,6 +36,7 @@ const SignUpProfessional = () => {
   };
 
   const onSubmit = async (data) => {
+    console.log("FORM SUBMITTED");
     try {
       const formData = new FormData();
       formData.append("name", data.name);
@@ -50,12 +53,8 @@ const SignUpProfessional = () => {
       const resultAction = await dispatch(professionalUserSignup(formData));
       const res = unwrapResult(resultAction);
       console.log(res);
-      if (res.success) {
-        navigate("/");
-        toast.success(res.message || "Signup successful!");
-      } else {
-        toast.error(res.message || "Email is already registered!");
-      }
+      toast.success(res.message || "Signup successful!");
+      navigate("/");
     } catch (error) {
       console.error("Signup error:", error);
       toast.error(

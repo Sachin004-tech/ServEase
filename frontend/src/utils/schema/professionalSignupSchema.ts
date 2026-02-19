@@ -15,7 +15,6 @@ export const professionalSignupSchema = z.object({
         .string()
         .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits")
         .nonempty("Phone number is required"),
-    address: z.string().min(5, "Address must be at least 5 characters long").nonempty("Address is required"),
     experience: z.string().nonempty("Experience is required"),
     file: z
         .any()
