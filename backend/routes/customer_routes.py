@@ -4,11 +4,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import bcrypt
 import jwt
 import datetime
-from config import connection, send_email
+from config import connection, send_email, add_notification
 from functools import wraps
 import random  # for the password reset
 from config import SECRET_KEY
 from datetime import timedelta, time, date
+
+
+
 
 
 
@@ -68,9 +71,6 @@ Your account has been created successfully.
 
 Thanks for joining ServEase.
 """
-
-        email_sent = send_email(email, subject, body)
-
         email_sent = send_email(email, subject, body)
         print("EMAIL STATUS:", email_sent)
 
@@ -206,7 +206,7 @@ def forgot_password():
     email=data.get("email")
 
     if not email:
-        return jsonify({"message":"Email is required"})
+        return jsonify({"message":"Email is required"}),400
     conn = connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -254,11 +254,13 @@ def forgot_password():
 def verify_otp():
 
     data = request.get_json()
-    email = data.get("email").strip().lower()
-    otp = str(data.get("otp")).strip()
+    email = data.get("email")
+    otp = str(data.get("otp"))
 
     if not email or not otp:
         return jsonify({"message": "Email and OTP are required"}), 400
+    email = email.strip().lower()
+    otp = str(otp).strip()
 
     conn = connection()
     cursor = conn.cursor(dictionary=True)
@@ -285,6 +287,10 @@ def verify_otp():
             return jsonify({"message": "OTP expired"}), 400
 
         # Attempt limit
+        cursor.execute(""" UPDATE password_reset_otp
+            SET attempts = attempts + 1
+            WHERE user_id=%s AND otp=%s
+        """, (user["user_id"],otp))
         if record["attempts"] >= 3:
             return jsonify({"message": "Too many attempts"}), 403
 
@@ -411,7 +417,7 @@ def search_services():
             FROM services s
             JOIN professionals p
             ON s.professional_id = p.professional_id
-            WHERE s.status='active'
+            WHERE s.status='active' AND p.status='approved'
             AND (
                 s.service_name LIKE %s
                 OR s.category LIKE %s
@@ -450,17 +456,23 @@ def create_booking(user_id):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Get service details
+        # 1️⃣ Get service details
         cursor.execute("""
-            SELECT * FROM services
-            WHERE service_id=%s AND status='active'
+            SELECT s.professional_id, s.price, s.service_name
+            FROM services s
+            JOIN professionals p ON s.professional_id=p.professional_id
+            WHERE s.service_id=%s
+            AND s.status='active'
+            AND p.status='approved'
         """, (service_id,))
         service = cursor.fetchone()
 
         if not service:
             return jsonify({"message": "Service not found"}), 404
 
-        # Insert booking
+        professional_id = service["professional_id"]
+
+        # 2️⃣ Insert booking
         cursor.execute("""
             INSERT INTO bookings
             (user_id, professional_id, service_id,
@@ -470,7 +482,7 @@ def create_booking(user_id):
                     'pending',%s,'pending')
         """, (
             user_id,
-            service["professional_id"],
+            professional_id,
             service_id,
             service["price"],
             booking_date,
@@ -480,6 +492,13 @@ def create_booking(user_id):
 
         conn.commit()
 
+        # 3️⃣ Trigger Professional Notification (AFTER SUCCESS)
+        add_notification(
+            professional_id=professional_id,
+            message="You have a new booking request.",
+            n_type="booking_request"
+        )
+
         return jsonify({
             "message": "Booking created successfully"
         }), 201
@@ -487,8 +506,9 @@ def create_booking(user_id):
     finally:
         cursor.close()
         conn.close()
+
 @customer_bp.route("/bookings/my", methods=["GET"])
-@customer_token_required
+@customer_token_required            #Customer ke sari bookings fetch karna
 def my_bookings(user_id):
 
     conn = connection()
@@ -517,113 +537,6 @@ def my_bookings(user_id):
         cursor.close()
         conn.close()
 
-
-
-# -------- CUSTOMER MY BOOKINGS (ALL HISTORY) --------
-@customer_bp.route("/bookings/all-my", methods=["GET"])
-@customer_token_required
-def my_all_bookings(user_id):
-
-    # optional filter
-    status = request.args.get("status", "").strip().lower()
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-
-        sql = """
-            SELECT 
-                b.booking_id,
-                b.service_name,
-                b.amount,
-                b.booking_date,
-                b.booking_time,
-                b.status,
-                b.live_status,
-                b.created_at,
-                p.name AS professional_name,
-                p.phone AS professional_phone,
-                p.skill AS professional_skill
-            FROM bookings b
-            JOIN professionals p
-            ON b.professional_id = p.professional_id
-            WHERE b.user_id = %s
-        """
-
-        params = [user_id]
-
-        # status filter (optional)
-        if status:
-            sql += " AND b.status = %s"
-            params.append(status)
-
-        # latest booking first (history + current)
-        sql += " ORDER BY b.booking_date DESC, b.booking_time DESC"
-
-        cursor.execute(sql, tuple(params))
-
-        bookings = cursor.fetchall()
-
-        # optional message if empty
-        if not bookings:
-            return jsonify({
-                "message": "No bookings found",
-                "data": []
-            }), 200
-        for row in bookings:
-            for key in row:
-                if row[key] is not None:
-                    row[key] = str(row[key])
-
-        return jsonify({
-            "total_bookings": len(bookings),
-            "data": bookings
-        }), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}),500
-
-    finally:
-        cursor.close()
-        conn.close()
-
-@customer_bp.route("/bookings/details/<int:booking_id>", methods=["GET"])
-@customer_token_required
-def booking_details_customer(user_id, booking_id):
-
-    conn = connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        cursor.execute("""
-            SELECT b.*, p.name AS professional_name,
-                   p.phone AS professional_phone,
-                   p.skill
-            FROM bookings b
-            JOIN professionals p
-            ON b.professional_id = p.professional_id
-            WHERE b.booking_id=%s
-            AND b.user_id=%s
-        """, (booking_id, user_id))
-
-        booking = cursor.fetchone()
-
-        if not booking:
-            return jsonify({"message": "Booking not found"}), 404
-
-
-        for key in booking:
-            if booking[key] is not None:
-                booking[key] = str(booking[key])
-
-        return jsonify(booking), 200
-    except Exception as e:
-        return jsonify({"error":str(e)}),500
-
-    finally:
-        cursor.close()
-        conn.close()
-
 @customer_bp.route("/bookings/cancel/<int:booking_id>", methods=["PUT"])
 @customer_token_required
 def cancel_booking(user_id, booking_id):
@@ -632,12 +545,137 @@ def cancel_booking(user_id, booking_id):
     cursor = conn.cursor(dictionary=True)
 
     try:
-
+        # 1️⃣ Check booking exists & get professional_id
         cursor.execute("""
-            SELECT b.*, p.email AS pro_email
+            SELECT professional_id
+            FROM bookings
+            WHERE booking_id=%s
+            AND user_id=%s
+            AND status IN ('pending','accepted')
+        """, (booking_id, user_id))
+
+        booking = cursor.fetchone()
+
+        if not booking:
+            return jsonify({
+                "message": "Cannot cancel booking"
+            }), 400
+
+        # 2️⃣ Update booking status
+        cursor.execute("""
+            UPDATE bookings
+            SET status='cancelled',
+                live_status='cancelled'
+            WHERE booking_id=%s
+            AND user_id=%s
+        """, (booking_id, user_id))
+
+        conn.commit()
+
+        # 3️⃣ Trigger Professional Notification
+        add_notification(
+            professional_id=booking["professional_id"],
+            message="A customer has cancelled the booking.",
+            n_type="booking_cancelled"
+        )
+
+        return jsonify({"message": "Booking cancelled successfully"}), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@customer_bp.route("/bookings/<int:booking_id>", methods=["GET"])
+@customer_token_required
+def booking_details(user_id, booking_id):
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+                    SELECT b.*, p.name as professional_name
+                    FROM bookings b
+                    LEFT JOIN professionals p
+                    ON b.professional_id = p.professional_id
+                    WHERE b.booking_id=%s AND b.user_id=%s
+                """, (booking_id, user_id))
+        booking = cursor.fetchone()
+        if not booking:
+            return jsonify({"message":"Booking not found"}),404
+        return jsonify(booking),200
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@customer_bp.route("/bookings/<int:booking_id>/professional", methods=["GET"])
+@customer_token_required
+def get_professional_details(user_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT 
+                b.status,
+                b.live_status,
+
+                p.professional_id,
+                p.name,
+                p.phone,
+                p.email,
+                p.skill
+
             FROM bookings b
-            JOIN professionals p
+            LEFT JOIN professionals p
             ON b.professional_id = p.professional_id
+
+            WHERE b.booking_id=%s
+            AND b.user_id=%s
+        """, (booking_id, user_id))
+
+        data = cursor.fetchone()
+
+        if not data:
+            return jsonify({"message":"Booking not found"}),404
+
+        # 🔐 Important Security Rule
+        if data["status"] != "accepted":
+            return jsonify({
+                "message":"Professional details available after acceptance only"
+            }),403
+
+        return jsonify(data),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@customer_bp.route("/bookings/live/<int:booking_id>", methods=["GET"])
+@customer_token_required
+def live_tracking(user_id, booking_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT 
+                b.booking_id,
+                b.live_status,
+                b.status,
+                b.booking_date,
+                b.booking_time,
+
+                p.name AS professional_name,
+                p.phone AS professional_phone,
+                p.skill AS professional_skill
+
+            FROM bookings b
+            LEFT JOIN professionals p
+            ON b.professional_id=p.professional_id
+
             WHERE b.booking_id=%s
             AND b.user_id=%s
         """, (booking_id, user_id))
@@ -647,25 +685,185 @@ def cancel_booking(user_id, booking_id):
         if not booking:
             return jsonify({"message":"Booking not found"}),404
 
-        if booking["status"] not in ["pending", "accepted"]:
-            return jsonify({"message":"Cannot cancel this booking"}),400
-
-        cursor.execute("""
-            UPDATE bookings
-            SET status='cancelled',
-                live_status='cancelled'
-            WHERE booking_id=%s
-        """, (booking_id,))
-
-        conn.commit()
-
-        return jsonify({
-            "message":"Booking cancelled successfully"
-        }),200
+        return jsonify(booking),200
 
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+
+#------------------------------------------RATINGS AND REVIEWS-----------------------------
+@customer_bp.route("/reviews/add", methods=["POST"])
+@customer_token_required
+def add_review(user_id):
+    data = request.get_json()
+    booking_id = data.get("booking_id")
+    rating = data.get("rating")
+    review = data.get("review","")
+    if not booking_id or not rating:
+        return jsonify({"message":"Booking ID and rating required"}),400
+
+    if not isinstance(rating, int) or rating <1 or rating > 5:
+        return jsonify({"message":"Rating must be between 1 and 5"}),400
+    conn= connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        #Check booking ownership and status
+        cursor.execute("""SELECT * FROM bookings WHERE booking_id = %s AND user_id = %s
+        """, (booking_id, user_id))
+        booking= cursor.fetchone()
+
+        if not booking:
+            return jsonify({"message":"Booking not found"}),404
+
+        if booking["status"] != "completed":
+            return jsonify({"message":"Rating allowed only after completion"}),403
+        #Check already reviewed
+        cursor.execute("""SELECT * FROM ratings_reviews WHERE booking_id = %s""", (booking_id,))
+        if cursor.fetchone():
+            return jsonify({"message":"Reviews already submitted"}),400
+        #Insert reviews
+        cursor.execute("""INSERT INTO ratings_reviews
+            (booking_id, user_id, professional_id, rating, review)
+            VALUES (%s, %s, %s, %s, %s)        
+        """,(booking_id,user_id,booking["professional_id"], rating,review))
+
+        #Recalculate professional rating
+        cursor.execute("""SELECT AVG(rating) as avg_rating, COUNT(*) as total
+            FROM ratings_reviews
+            WHERE professional_id=%s
+        """,(booking["professional_id"],))
+        result = cursor.fetchone()
+        avg_rating = round(float(result["avg_rating"]),2)
+        total_reviews = result["total"]
+
+        conn.commit()
+
+        #SEND NOTIFICATION TO PROFESSIONAL
+        add_notification(
+            user_id=None,
+            professional_id=booking["professional_id"],
+            message=f"You received a {rating} star rating",
+            n_type="rating_received"
+        )
+        if rating <= 2:
+            add_notification(
+                professional_id=booking["professional_id"],
+                message="You received a low rating. Please improve your service quality.",
+                n_type="low_rating_alert"
+            )
+
+        return jsonify({
+            "message":"Review submitted successfully",
+            "average_rating":avg_rating,
+            "total_reviews":total_reviews
+
+        }),201
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+#--------------------------------------------NOTIFICATIONS-------------------------------------
+@customer_bp.route("/notifications", methods=["GET"])
+@customer_token_required
+def get_notifications(user_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT notification_id, message, status, created_at
+            FROM notifications
+            WHERE user_id=%s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        notifications = cursor.fetchall()
+
+        return jsonify({
+            "notifications": notifications
+        }), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@customer_bp.route("/notifications/read/<int:notification_id>", methods=["PUT"])
+@customer_token_required
+def mark_notification_read(user_id, notification_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE notifications
+            SET status='read'
+            WHERE notification_id=%s
+            AND user_id=%s
+        """, (notification_id, user_id))
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Notification not found"}), 404
+
+        return jsonify({"message": "Notification marked as read"}), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@customer_bp.route("/notifications/unread-count", methods=["GET"])
+@customer_token_required
+def unread_count(user_id):
+
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT COUNT(*) as unread
+            FROM notifications
+            WHERE user_id=%s
+            AND status='unread'
+        """, (user_id,))
+
+        count = cursor.fetchone()["unread"]
+
+        return jsonify({
+            "unread_count": count
+        }), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -20,7 +20,7 @@ dist/
 
 # ---- Common ----
 # Environment variables
-.env
+
 
 # IDE / editor settings
 .vscode/
