@@ -93,7 +93,7 @@ def professional_signup():
         send_email(email, subject, body)
 
         return jsonify({
-            "message": "Signup successful, pending admin approval",
+            "message": "Signup successful, pending for admin approval",
             "status": "success",
             "document_url": document_url
         }), 201
@@ -131,6 +131,7 @@ def professional_login():
         # Generate JWT token
         token_payload = {
             "professional_id": professional["professional_id"],
+            "role": "professional",
             "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)  # token valid for 1 day
         }
         token = jwt.encode(token_payload, SECRET_KEY, algorithm="HS256")
