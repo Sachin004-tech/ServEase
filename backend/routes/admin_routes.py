@@ -39,6 +39,13 @@ def admin_login():
         "admin_id": admin["admin_id"]
     }),200
 
+
+
+
+
+
+
+#------------------------------------------------------PROFESSIONAL REQUEST CONTROL ------------------------------------
 @admin_bp.route("/professional/pending", methods=["GET"])   # admin can see the pending requests of professionals
 def pending_professionals():
     conn = connection()
