@@ -1,18 +1,31 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-// import { login, CustomerSignup, ProfessionalSignup } from './authAPI';
 import {
   CustomerLogin,
+  ProfessionalLogin,
   CustomerSignup,
   ProfessionalSignup,
 } from "../../../api/auth";              // Importing API functions that make real HTTP requests
 
 //Login
-export const loginUser = createAsyncThunk(
-  "auth/loginUser",
+export const CustomerUserLogin = createAsyncThunk(
+  "auth/CustomerUserLogin",
   async (userData, { rejectWithValue }) => { // userData → { email, password } (from frontend)
 
     try {
       const res = await CustomerLogin(userData);
+      return res;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Login Failed");
+    }
+  }
+);
+
+export const ProfessionalUserLogin = createAsyncThunk(
+  "auth/ProfessionalUserLogin",
+  async (userData, { rejectWithValue }) => { // userData → { email, password } (from frontend)
+
+    try {
+      const res = await ProfessionalLogin(userData);
       return res;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Login Failed");
@@ -49,7 +62,7 @@ export const professionalUserSignup = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    user: null,
+    user: JSON.parse(localStorage.getItem("user")) || null,
     loading: false,
     error: null,
   },
@@ -57,22 +70,40 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.error = null;
+      localStorage.removeItem("user");
     },
   },
 
   extraReducers: (builder) => {
-    //login
-    builder.addCase(loginUser.pending, (state) => {
+    //CustomerLogin
+    builder.addCase(CustomerUserLogin.pending, (state) => {
       state.loading = true;
       state.error = null;
     });
 
-    builder.addCase(loginUser.fulfilled, (state, action) => {
+    builder.addCase(CustomerUserLogin.fulfilled, (state, action) => {
       state.loading = false;
       state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
     });
 
-    builder.addCase(loginUser.rejected, (state, action) => {
+    builder.addCase(CustomerUserLogin.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    builder.addCase(ProfessionalUserLogin.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+
+    builder.addCase(ProfessionalUserLogin.fulfilled, (state, action) => {
+      state.loading = false;
+      state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
+    });
+
+    builder.addCase(ProfessionalUserLogin.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
     });

@@ -1,19 +1,21 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Modal from "./modal/Modal";
-import RoleSelection from "./RoleSelection";
+import { useNavigate, useLocation } from "react-router-dom";
+import Modal from "../modal/Modal";
+import RoleSelection from "../RoleSelection";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../redux/feature/auth/authSlice";
+import { CustomerUserLogin } from "../../redux/feature/auth/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
 import { toast } from "react-toastify";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "../utils/schema/loginSchema";
+import { loginSchema } from "../../utils/schema/loginSchema";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import PasswordResetFlow from "./auth/PasswordResetFlow";
+import PasswordResetFlow from "../auth/PasswordResetFlow";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedRole = "customer";
   const [showModal, setShowModal] = useState(false);
   const dispatch = useDispatch();
   const { loading, error, user } = useSelector((state) => state.auth);
@@ -40,21 +42,22 @@ const LoginPage = () => {
     console.log(data);
     try {
       const resultAction = await dispatch(
-        loginUser({ email: data.email, password: data.password, role: data.role })
+        CustomerUserLogin({ email: data.email, password: data.password, role: selectedRole })
       );
       const res = unwrapResult(resultAction);
       localStorage.setItem("token", res.token);
       console.log(res);
       toast.success(res.message);
-      if (res.success === data.role) {
-        navigate("/");
-      } else if (res.success === data.role) {
-        navigate("/professional");
-      }
     } catch (err) {
       toast.error(err.message || "Login failed");
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user]);
 
   return (
     <>
@@ -73,10 +76,10 @@ const LoginPage = () => {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Welcome Back
+                    Customer Login
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Sign in to your account to continue your journey
+                    Sign in to your customer account
                   </p>
                 </div>
 

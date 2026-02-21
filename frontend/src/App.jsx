@@ -1,22 +1,22 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-import LoginPage from "./components/LoginPage";
-import Navbar from "./layouts/Navbar";
-import SignUpCustomer from "./pages/register/SignUpCustomer";
-import SignUpProfessional from "./pages/register/SignUpProfessional";
-import HomePage from "./pages/HomePage";
+import { Routes, Route, useLocation } from "react-router-dom";
+import Navbar from "./layouts/navbars/Navbar";
+import Navbar2 from "./layouts/navbars/Navbar2";
 import { ToastContainer } from "react-toastify";
+import { useSelector } from "react-redux";
+import allRoutes from "./routes";
 
 function App() {
+  const location = useLocation();
+  const authPaths = ["/login", "/signupcustomer", "/signupprofessional", "/loginprofessional"];
+  const { user } = useSelector((state) => state.auth);
 
   return <>
-    <Navbar />
+    {authPaths.includes(location.pathname.toLowerCase()) ? <Navbar2 /> : <Navbar />}
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signupcustomer" element={<SignUpCustomer />} />
-      <Route path="/signupprofessional" element={<SignUpProfessional />} />
-
+      {allRoutes.map((route, index) => (
+        <Route key={index} path={route.path} element={route.element} />
+      ))}
     </Routes>
     <ToastContainer
       position="top-right"

@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { verifyOTPSchema } from "../../utils/schema/passwordResetSchema";
 import { useState, useEffect } from "react";
 import { OTP_VALIDATION_TIMER_MILI } from "../../utils/constants/constants";
+import { toast } from "react-toastify";
 
 const VerifyOTPForm = ({ onSubmit, loading, email }) => {
     const [timer, setTimer] = useState(OTP_VALIDATION_TIMER_MILI.LIMIT);

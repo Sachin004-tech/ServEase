@@ -1,5 +1,5 @@
 import Seo from "../../components/common/Seo";
-import LoginPage from "../../components/LoginPage";
+import LoginPage from "../../components/login/LoginPage";
 
 const index = () => {
     return (
