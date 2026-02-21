@@ -49,7 +49,7 @@ const SignUpCustomer = () => {
       navigate("/");
     } catch (error) {
       console.error("Signup error:", error);
-      toast.error("Signup failed. Please try again.");
+      toast.error(error.message);
     }
   };
 

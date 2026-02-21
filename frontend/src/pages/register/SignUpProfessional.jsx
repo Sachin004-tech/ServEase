@@ -37,6 +37,7 @@ const SignUpProfessional = () => {
 
   const onSubmit = async (data) => {
     console.log("FORM SUBMITTED");
+    let toastId;
     try {
       const formData = new FormData();
       formData.append("name", data.name);
@@ -50,13 +51,21 @@ const SignUpProfessional = () => {
         formData.append("document", data.file[0]);
       }
 
+      toastId = toast.loading("Please wait...");
       const resultAction = await dispatch(professionalUserSignup(formData));
       const res = unwrapResult(resultAction);
       console.log(res);
-      toast.success(res.message || "Signup successful!");
-      navigate("/");
+      toast.dismiss(toastId);
+      toast.success("Please wait for admin approval");
+      toast.success("Check your Email Id for verification");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 3000);
     } catch (error) {
       console.error("Signup error:", error);
+      if (toastId) {
+        toast.dismiss(toastId);
+      }
       toast.error(
         error.message || "Signup failed. Please try again."
       );

@@ -16,10 +16,10 @@ const Modal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       {/* Modal Box */}
       <div
-        className={`w-full ${sizeClasses[size]}  rounded-lg shadow-lg relative bg-gray-800 text-white`}
+        className={`w-full ${sizeClasses[size]} mx-auto rounded-lg shadow-lg relative bg-gray-800 text-white`}
       >
         {/* Close Button */}
         <button
