@@ -62,15 +62,19 @@ export const professionalUserSignup = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    user: JSON.parse(localStorage.getItem("user")) || null,
+    customerUser: JSON.parse(localStorage.getItem("customerUser")) || null,
+    professionalUser: JSON.parse(localStorage.getItem("professionalUser")) || null,
     loading: false,
     error: null,
   },
   reducers: {                // Logout → clears all user info
     logout: (state) => {
-      state.user = null;
+      state.customerUser = null;
+      state.professionalUser = null;
       state.error = null;
-      localStorage.removeItem("user");
+      localStorage.removeItem("customerUser");
+      localStorage.removeItem("professionalUser");
+      localStorage.removeItem("token");
     },
   },
 
@@ -83,8 +87,8 @@ const authSlice = createSlice({
 
     builder.addCase(CustomerUserLogin.fulfilled, (state, action) => {
       state.loading = false;
-      state.user = action.payload;
-      localStorage.setItem("user", JSON.stringify(action.payload));
+      state.customerUser = action.payload;
+      localStorage.setItem("customerUser", JSON.stringify(action.payload));
     });
 
     builder.addCase(CustomerUserLogin.rejected, (state, action) => {
@@ -99,8 +103,8 @@ const authSlice = createSlice({
 
     builder.addCase(ProfessionalUserLogin.fulfilled, (state, action) => {
       state.loading = false;
-      state.user = action.payload;
-      localStorage.setItem("user", JSON.stringify(action.payload));
+      state.professionalUser = action.payload;
+      localStorage.setItem("professionalUser", JSON.stringify(action.payload));
     });
 
     builder.addCase(ProfessionalUserLogin.rejected, (state, action) => {
@@ -116,7 +120,7 @@ const authSlice = createSlice({
 
     builder.addCase(customerUserSignup.fulfilled, (state, action) => {
       state.loading = false;
-      state.user = action.payload;
+      state.customerUser = action.payload;
     });
 
     builder.addCase(customerUserSignup.rejected, (state, action) => {
@@ -132,7 +136,7 @@ const authSlice = createSlice({
 
     builder.addCase(professionalUserSignup.fulfilled, (state, action) => {
       state.loading = false;
-      state.user = action.payload;
+      state.professionalUser = action.payload;
     });
 
     builder.addCase(professionalUserSignup.rejected, (state, action) => {
