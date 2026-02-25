@@ -19,7 +19,7 @@ const LoginPage2 = () => {
     const selectedRole = "professional";
     const [showModal, setShowModal] = useState(false);
     const dispatch = useDispatch();
-    const { loading, error, user } = useSelector((state) => state.auth);
+    const { loading, error, professionalUser } = useSelector((state) => state.auth);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
 
@@ -57,10 +57,10 @@ const LoginPage2 = () => {
     };
 
     useEffect(() => {
-        if (user) {
+        if (professionalUser) {
             navigate("/professionaldashboard");
         }
-    }, [user]);
+    }, [professionalUser]);
 
     return (
         <>

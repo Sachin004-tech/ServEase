@@ -43,7 +43,9 @@ const bookedServices = [
     }
 ];
 
-const HomeBottomContent2 = () => {
+const HomeBottomContent2 = ({ services }) => {
+    const mostBookedServices = services.slice(0, 5);
+    console.log(mostBookedServices);
     return (
         <section className="bg-gray-50 py-20 px-4 md:px-8">
             <div className="max-w-7xl mx-auto">
@@ -55,7 +57,7 @@ const HomeBottomContent2 = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8">
-                    {bookedServices.map((service) => (
+                    {mostBookedServices.map((service) => (
                         <div
                             key={service.id}
                             className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group cursor-pointer flex flex-col h-full"

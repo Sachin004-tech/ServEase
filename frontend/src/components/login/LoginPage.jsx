@@ -18,7 +18,7 @@ const LoginPage = () => {
   const selectedRole = "customer";
   const [showModal, setShowModal] = useState(false);
   const dispatch = useDispatch();
-  const { loading, error, user } = useSelector((state) => state.auth);
+  const { loading, error, customerUser } = useSelector((state) => state.auth);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
 
@@ -54,10 +54,10 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (customerUser) {
       navigate("/");
     }
-  }, [user]);
+  }, [customerUser]);
 
   return (
     <>

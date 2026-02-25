@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './feature/auth/authSlice'    // Importing the auth reducer we created in authSlice.js
+import serviceReducer from './feature/services/serviceSlice'
 
 
 //  Creating the Redux store that holds the global app state
@@ -9,5 +10,6 @@ export const store = configureStore({
         //  "auth" → key used to access state in components (state.auth)
         //  authReducer → logic that manages login/signup/logout
         auth: authReducer,
+        service: serviceReducer,
     },
 }) 

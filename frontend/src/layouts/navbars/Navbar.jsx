@@ -19,7 +19,7 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMode, setModalMode] = useState("signup"); // "signup" or "login"
-  const { user } = useSelector((state) => state.auth);
+  const { customerUser: user } = useSelector((state) => state.auth);
   const cart = useSelector((state) => state.cart?.items || []);
 
   const openRoleModal = (mode) => {

@@ -106,3 +106,79 @@ export const resetPassword2 = async (payload) => {
   }
 };
 
+//  {Professional Services}
+
+export const addService = async (serviceData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.post("/professional/services/add", serviceData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Add service error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const getMyServices = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.get("/professional/services/my", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Get services error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const editService = async (serviceId, serviceData) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.put(`/professional/services/edit/${serviceId}`, serviceData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Edit service error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const deleteService = async (serviceId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.delete(`/professional/services/delete/${serviceId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Delete service error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+
+
+// {Customer Services}
+
+export const getServices = async () => {
+  try {
+    const response = await axiosInstance.get("/customer/services");
+    return response.data;
+  } catch (error) {
+    console.error("Get services error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
