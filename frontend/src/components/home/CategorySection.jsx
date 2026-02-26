@@ -1,10 +1,18 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const CategorySection = ({ title, subtitle, category, services }) => {
+    const navigate = useNavigate();
+
     // Filter services based on the category
     const filteredServices = services.filter(service => service.category === category);
 
     if (filteredServices.length === 0) return null;
+
+    const handleViewClick = () => {
+        // Use the category prop directly as it's already a string like "Cleaning"
+        navigate(`/products?category=${category}`);
+    };
 
     return (
         <section className="bg-white py-20 px-4 md:px-8 border-t border-gray-100">
@@ -57,8 +65,11 @@ const CategorySection = ({ title, subtitle, category, services }) => {
                                 </div>
                                 <div className="mt-auto flex items-center justify-between">
                                     <span className="text-lg font-bold text-gray-900">₹{service.price}</span>
-                                    <button className="bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 px-4 py-1.5 rounded-xl text-sm font-bold transition-colors">
-                                        Add
+                                    <button
+                                        onClick={handleViewClick}
+                                        className="bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 px-4 py-1.5 rounded-xl text-sm font-bold transition-colors"
+                                    >
+                                        View
                                     </button>
                                 </div>
                             </div>

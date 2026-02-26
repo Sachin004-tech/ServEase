@@ -1,6 +1,8 @@
 import HomePage from "../pages/HomePage";
 import LoginPage from "../components/login/LoginPage";
 import SignUpCustomer from "../pages/register/SignUpCustomer";
+import Products from "../pages/Products";
+import Cart from "../pages/Cart";
 
 const customerRoutes = [
     {
@@ -14,6 +16,14 @@ const customerRoutes = [
     {
         path: "/signupcustomer",
         element: <SignUpCustomer />,
+    },
+    {
+        path: "/products",
+        element: <Products />,
+    },
+    {
+        path: "/cart",
+        element: <Cart />,
     },
 ];
 

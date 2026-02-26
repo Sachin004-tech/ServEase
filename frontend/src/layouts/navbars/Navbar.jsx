@@ -3,7 +3,6 @@ import { NavLink, useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import MenuIcon from "@mui/icons-material/Menu";
 import { Badge, IconButton, Avatar } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/feature/auth/authSlice";
@@ -19,8 +18,9 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMode, setModalMode] = useState("signup"); // "signup" or "login"
+
   const { customerUser: user } = useSelector((state) => state.auth);
-  const cart = useSelector((state) => state.cart?.items || []);
+  const cartQuantity = useSelector((state) => state.cart?.quantity || 0);
 
   const openRoleModal = (mode) => {
     setModalMode(mode);
@@ -101,9 +101,9 @@ const Navbar = () => {
             <IconButton
               aria-label="cart"
               className="text-gray-700 hover:text-primary transition-colors"
-              onClick={() => navigate("/cart")}
+              onClick={() => navigate("/cart?cart&category=mens_grooming&draftOrderId=69a0254a77bc5a002676f65c")}
             >
-              <Badge badgeContent={cart.length} color="primary">
+              <Badge badgeContent={cartQuantity} color="primary">
                 <ShoppingCartIcon />
               </Badge>
             </IconButton>
@@ -200,4 +200,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

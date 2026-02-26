@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
-import authReducer from './feature/auth/authSlice'    // Importing the auth reducer we created in authSlice.js
+import authReducer from './feature/auth/authSlice'
 import serviceReducer from './feature/services/serviceSlice'
+import cartReducer from './feature/cartSlice'
 
 
 //  Creating the Redux store that holds the global app state
@@ -11,5 +12,6 @@ export const store = configureStore({
         //  authReducer → logic that manages login/signup/logout
         auth: authReducer,
         service: serviceReducer,
+        cart: cartReducer,
     },
 }) 
