@@ -38,7 +38,10 @@ export const CustomerLogin = async (loginData) => {
 };
 export const ProfessionalLogin = async (loginData) => {
   try {
-    const response = await axiosInstance.post("/professional/login", loginData);
+    const isFormData = loginData instanceof FormData;
+    const response = await axiosInstance.post("/professional/login", loginData, {
+      headers: isFormData ? { "Content-Type": "multipart/form-data" } : {},
+    });
     return response.data;
   } catch (error) {
     console.error("Professional login error:", error.response?.data || error.message);

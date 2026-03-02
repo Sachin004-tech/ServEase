@@ -96,6 +96,8 @@ const authSlice = createSlice({
       state.error = action.payload;
     });
 
+    //professional login
+
     builder.addCase(ProfessionalUserLogin.pending, (state) => {
       state.loading = true;
       state.error = null;
