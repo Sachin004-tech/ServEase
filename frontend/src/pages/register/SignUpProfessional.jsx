@@ -15,7 +15,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 const SignUpProfessional = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { loading, error, user } = useSelector((state) => state.auth);
+  const { loading, error, professionalUser: user } = useSelector((state) => state.auth);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const {

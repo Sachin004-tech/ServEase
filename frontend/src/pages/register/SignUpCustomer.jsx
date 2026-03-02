@@ -14,7 +14,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 const SignUpCustomer = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { loading, error, user } = useSelector((state) => state.auth); //Redux store se authentication-related data nikal rahe hain (state.auth se)
+  const { loading, error, customerUser: user } = useSelector((state) => state.auth); //Redux store se authentication-related data nikal rahe hain (state.auth se)
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const togglePasswordVisibility = () => {

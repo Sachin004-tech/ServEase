@@ -1,12 +1,37 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import HomeLeftBar from "../components/home/HomeLeftBar";
 import HomeBottomContent from "../components/home/HomeBottomContent";
 import HomeBottomContent2 from "../components/home/HomeBottomContent2";
-import HomeBottomContent3 from "../components/home/HomeBottomContent3";
 import HomeRightContent from "../components/home/HomeRightContent";
 import Footer from "../components/footer/Footer";
+import { getServices } from "../api/auth";
+
+// Category Specific Components
+import CleaningContent from "../components/home/categories/CleaningContent";
+import PlumbingContent from "../components/home/categories/PlumbingContent";
+import ElectricianContent from "../components/home/categories/ElectricianContent";
+import PestControlContent from "../components/home/categories/PestControlContent";
+import SalonWomenContent from "../components/home/categories/SalonWomenContent";
+import SalonMenContent from "../components/home/categories/SalonMenContent";
+import ACRepairContent from "../components/home/categories/ACRepairContent";
+import ApplianceRepairContent from "../components/home/categories/ApplianceRepairContent";
+import PaintingContent from "../components/home/categories/PaintingContent";
 
 const HomePage = () => {
+  const [services, setServices] = useState([]);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await getServices();
+        console.log(response);
+        setServices(response);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+    fetchServices();
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Section: Sidebar and Banner */}
@@ -18,14 +43,22 @@ const HomePage = () => {
         <HomeRightContent />
       </div>
 
-      {/* Bottom Section 1 */}
+      {/* Hero Section 1: In the Spotlight */}
       <HomeBottomContent />
 
-      {/* Bottom Section 2 */}
-      <HomeBottomContent2 />
+      {/* Hero Section 2: Most Booked Services */}
+      <HomeBottomContent2 services={services} />
 
-      {/* Bottom Section 3 */}
-      <HomeBottomContent3 />
+      {/* Category Specific Sections */}
+      <CleaningContent services={services} />
+      <PlumbingContent services={services} />
+      <ElectricianContent services={services} />
+      <PestControlContent services={services} />
+      <SalonWomenContent services={services} />
+      <SalonMenContent services={services} />
+      <ACRepairContent services={services} />
+      <ApplianceRepairContent services={services} />
+      <PaintingContent services={services} />
 
       {/* Footer */}
       <Footer />
