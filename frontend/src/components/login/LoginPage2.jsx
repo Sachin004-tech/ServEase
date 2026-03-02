@@ -41,15 +41,15 @@ const LoginPage2 = () => {
 
     const onSubmit = async (data) => {
         console.log(data);
-        debugger;
         try {
+            const formData = new FormData();
+            formData.append("email", data.email);
+            formData.append("password", data.password);
             const resultAction = await dispatch(
-                ProfessionalUserLogin({ email: data.email, password: data.password, role: selectedRole })
+                ProfessionalUserLogin(formData)
             );
-            console.log(resultAction);
             const res = unwrapResult(resultAction);
             localStorage.setItem("token", res.token);
-            console.log(res);
             toast.success(res.message);
         } catch (err) {
             toast.error(err.message || "Login failed");
