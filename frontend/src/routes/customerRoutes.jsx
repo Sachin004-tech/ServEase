@@ -3,6 +3,7 @@ import LoginPage from "../components/login/LoginPage";
 import SignUpCustomer from "../pages/register/SignUpCustomer";
 import Products from "../pages/Products";
 import Cart from "../pages/Cart";
+import CustomerBookings from "../pages/CustomerBookings";
 
 const customerRoutes = [
     {
@@ -24,6 +25,10 @@ const customerRoutes = [
     {
         path: "/cart",
         element: <Cart />,
+    },
+    {
+        path: "/customer-bookings",
+        element: <CustomerBookings />,
     },
 ];
 

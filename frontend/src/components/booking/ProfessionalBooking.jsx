@@ -1,7 +1,7 @@
 import React from "react";
 import ProfessionalSidebar from "../../layouts/sidebars/ProfessionalSidebar";
 
-const Booking = () => {
+const ProfessionalBookings = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <ProfessionalSidebar />
@@ -15,4 +15,4 @@ const Booking = () => {
     );
 };
 
-export default Booking;
+export default ProfessionalBookings;

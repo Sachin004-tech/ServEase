@@ -109,8 +109,10 @@ const Navbar = () => {
             </IconButton>
 
             {/* Book Now */}
-            <button className="hidden md:block bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-full transition shadow-md hover:shadow-lg active:scale-95">
-              Book Now
+            <button
+              onClick={() => navigate("/customer-bookings")}
+              className="hidden md:block bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-full transition shadow-md hover:shadow-lg active:scale-95">
+              Bookings
             </button>
 
             {/* User Profile / Login */}
