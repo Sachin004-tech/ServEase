@@ -4,7 +4,7 @@ import ProfessionalSidebar from "../../layouts/sidebars/ProfessionalSidebar";
 import { toast } from "react-toastify";
 import { FiEdit2, FiTrash2, FiX, FiCheck } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchMyServices, updateService, removeService } from "../../redux/feature/services/serviceSlice";
+import { fetchMyServices, updateService, removeService, toggleServiceStatus } from "../../redux/feature/services/serviceSlice";
 import { useDispatch, useSelector } from "react-redux";
 
 const ManageServices = () => {
@@ -17,6 +17,7 @@ const ManageServices = () => {
         description: "",
         price: ""
     });
+    const [updatingStatus, setUpdatingStatus] = useState(null);
 
     useEffect(() => {
         console.log("Current services state:", services);
@@ -97,6 +98,22 @@ const ManageServices = () => {
         }
     };
 
+    const handleStatusChange = async (serviceId, currentStatus) => {
+        try {
+            setUpdatingStatus(serviceId);
+            const resultAction = await dispatch(toggleServiceStatus(serviceId));
+            if (toggleServiceStatus.fulfilled.match(resultAction)) {
+                toast.success(`Service status updated to ${resultAction.payload.new_status}`);
+            } else {
+                toast.error("Failed to update status");
+            }
+        } catch (error) {
+            toast.error("Error updating status");
+        } finally {
+            setUpdatingStatus(null);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <ProfessionalSidebar />
@@ -121,6 +138,7 @@ const ManageServices = () => {
                                     <th className="px-6 py-4">Category</th>
                                     <th className="px-6 py-4">Description</th>
                                     <th className="px-6 py-4">Price (₹)</th>
+                                    <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -161,6 +179,31 @@ const ManageServices = () => {
                                                     {service.description}
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-gray-800">₹{service.price}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="relative">
+                                                        <select
+                                                            value={service.status || "active"}
+                                                            onChange={() => handleStatusChange(service.service_id)}
+                                                            disabled={updatingStatus === service.service_id}
+                                                            className={`appearance-none px-3 py-1 pr-8 rounded-full text-xs font-semibold focus:outline-none transition-colors cursor-pointer disabled:opacity-50 ${(service.status || "active") === "active"
+                                                                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                                                    : "bg-red-100 text-red-700 hover:bg-red-200"
+                                                                }`}
+                                                        >
+                                                            <option value="active">Active</option>
+                                                            <option value="inactive">Inactive</option>
+                                                        </select>
+                                                        <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                                            {updatingStatus === service.service_id ? (
+                                                                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                                            ) : (
+                                                                <svg className="w-3 h-3 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-3">
                                                         <button

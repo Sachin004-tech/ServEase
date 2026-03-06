@@ -186,7 +186,7 @@ export const getServices = async () => {
 };
 
 
-//<-------- Booking -------->
+//<-------- Customer Booking -------->
 
 export const createBooking = async (bookingData) => {
   try {
@@ -280,6 +280,99 @@ export const bookingProgress = async (bookingId) => {
     return response.data;
   } catch (error) {
     console.error("Booking progress error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+//<-------- Professional Booking -------->
+
+export const ProfessionalBookingRequests = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.get("/professional/bookings/requests", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Get bookings error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const acceptBookingRequest = async (bookingId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.put(`/professional/bookings/accept/${bookingId}`, null, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Accept booking request error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const rejectBookingRequest = async (bookingId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.put(`/professional/bookings/reject/${bookingId}`, null, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Reject booking request error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const professionalBookingDetails = async (bookingId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.get(`/professional/bookings/${bookingId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Booking details error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const liveStatus = async (bookingId, live_status) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.put(`/professional/bookings/status/${bookingId}`, { live_status }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Live professional service error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const toggleStatus = async (serviceId) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.put(`/professional/services/toggle/${serviceId}`, null, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Toggle status error:", error.response?.data || error.message);
     throw error;
   }
 };

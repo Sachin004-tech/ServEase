@@ -3,7 +3,7 @@ import ProfessionalDashboard from "../pages/professional/professionalDashboard";
 import LoginPage2 from "../components/login/LoginPage2";
 import ServicesForm from "../components/services/ServicesForm";
 import Kyc from "../components/kyc/kyc";
-import ProfessionalBookings from "../components/booking/ProfessionalBooking";
+import ProfessionalBookings from "../pages/professional/ProfessionalBooking";
 import ManageServices from "../components/services/Manage-Services";
 
 const professionalRoutes = [
