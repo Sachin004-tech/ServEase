@@ -109,6 +109,53 @@ export const resetPassword2 = async (payload) => {
   }
 };
 
+//  {Customer Notifications}
+
+export const getNotifications = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.get("/customer/notifications", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Get notifications error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const readNotification = async (notification_id) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.put(`/customer/notifications/read/${notification_id}`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Read notification error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
+export const unreadNotification = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axiosInstance.get(`/customer/notifications/unread-count`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Unread notification error:", error.response?.data || error.message);
+    throw error;  // Re-throw for Redux thunk to handle
+  }
+};
+
 //  {Professional Services}
 
 export const addService = async (serviceData) => {
