@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { removeFromCart, addToCart, decrementQuantity, clearCart } from '../redux/feature/cartSlice';
@@ -10,6 +10,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { IconButton } from '@mui/material';
+import { createBooking } from '../api/auth';
+import { toast } from 'react-toastify';
 
 const Cart = () => {
     const [searchParams] = useSearchParams();
@@ -22,11 +24,21 @@ const Cart = () => {
     const draftOrderId = searchParams.get('draftOrderId');
 
     const [formData, setFormData] = useState({
-        location: '',
-        paymentMethod: 'cash',
-        slot: '',
-        contactNumber: ''
+        service_id: "",
+        booking_date: "",
+        booking_time: ""
     });
+
+    // Automatically set service_id from the first item in the cart
+    useEffect(() => {
+        if (items.length > 0 && !formData.service_id) {
+            const firstItem = items[0];
+            const id = firstItem.service_id || firstItem._id || firstItem.id;
+            if (id) {
+                setFormData(prev => ({ ...prev, service_id: String(id) }));
+            }
+        }
+    }, [items, formData.service_id]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -50,6 +62,22 @@ const Cart = () => {
         dispatch(clearCart());
     };
 
+    const handleConfirmBooking = async () => {
+        try {
+            const response = await createBooking(formData);
+            console.log(response);
+            if (response.success) {
+                toast.success(response.message);
+                dispatch(clearCart());
+                navigate('/');
+            }
+        } catch (error) {
+            console.log(error);
+            toast.error(error.response?.data?.message || 'Failed to book service');
+        }
+    }
+
+
     return (
         <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 md:px-8">
             <div className="max-w-7xl mx-auto">
@@ -62,7 +90,7 @@ const Cart = () => {
 
                         <div className="space-y-6">
                             {/* Location */}
-                            <div className="space-y-2">
+                            {/* <div className="space-y-2">
                                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                     <LocationOnIcon fontSize="small" className="text-primary" />
                                     Service Location
@@ -75,10 +103,10 @@ const Cart = () => {
                                     placeholder="Enter your full address"
                                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                 />
-                            </div>
+                            </div> */}
 
                             {/* Contact Number */}
-                            <div className="space-y-2">
+                            {/* <div className="space-y-2">
                                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                     <PhoneIcon fontSize="small" className="text-primary" />
                                     Contact Number
@@ -91,18 +119,33 @@ const Cart = () => {
                                     placeholder="Enter 10-digit mobile number"
                                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                 />
-                            </div>
+                            </div> */}
 
-                            {/* Slot */}
+                            {/* Preferred Date */}
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                     <AccessTimeIcon fontSize="small" className="text-primary" />
-                                    Preferred Slot
+                                    Booking Date
                                 </label>
                                 <input
-                                    type="datetime-local"
-                                    name="slot"
-                                    value={formData.slot}
+                                    type="date"
+                                    name="booking_date"
+                                    value={formData.booking_date}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                />
+                            </div>
+
+                            {/* Preferred Time */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    <AccessTimeIcon fontSize="small" className="text-primary" />
+                                    Booking Time
+                                </label>
+                                <input
+                                    type="time"
+                                    name="booking_time"
+                                    value={formData.booking_time}
                                     onChange={handleInputChange}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                 />
@@ -131,7 +174,7 @@ const Cart = () => {
                                                 onChange={handleInputChange}
                                                 className="hidden"
                                             />
-                                            <span className="font-bold capitalize">{method === 'cash' ? 'Cash After Service' : 'Pay Online'}</span>
+                                            <span className="font-bold capitalize">{method === 'cash' ? 'Pay Cash' : 'Pay Online'}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -143,7 +186,7 @@ const Cart = () => {
                                 Order ID: <span className="font-mono">{draftOrderId || 'N/A'}</span> |
                                 Category: <span className="capitalize">{category?.replace(/_/g, ' ') || 'N/A'}</span>
                             </p>
-                            <button className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg active:scale-95">
+                            <button onClick={() => { handleConfirmBooking() }} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg active:scale-95">
                                 Confirm Booking
                             </button>
                         </div>

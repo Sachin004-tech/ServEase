@@ -3,7 +3,7 @@ import ProfessionalDashboard from "../pages/professional/professionalDashboard";
 import LoginPage2 from "../components/login/LoginPage2";
 import ServicesForm from "../components/services/ServicesForm";
 import Kyc from "../components/kyc/kyc";
-import Booking from "../components/booking/Booking";
+import ProfessionalBookings from "../pages/professional/ProfessionalBooking";
 import ManageServices from "../components/services/Manage-Services";
 
 const professionalRoutes = [
@@ -28,8 +28,8 @@ const professionalRoutes = [
         element: <Kyc />,
     },
     {
-        path: "/professionaldashboard/bookings",
-        element: <Booking />,
+        path: "/professionaldashboard/professional-bookings",
+        element: <ProfessionalBookings />,
     },
     {
         path: "/professionaldashboard/manage-services",

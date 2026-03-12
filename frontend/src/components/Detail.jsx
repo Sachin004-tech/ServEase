@@ -54,9 +54,21 @@ const Detail = ({ service }) => {
                             <span className="w-1.5 h-6 bg-gray-900 rounded-full"></span>
                             Description
                         </h3>
-                        <p className="text-gray-600 leading-relaxed text-lg">
-                            {service.description || "Our professional experts ensure high-quality service with satisfaction guaranteed. We use premium tools and follow all safety protocols to provide you with the best experience possible."}
-                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Professional Name:</span>
+                                <span className="text-gray-900 font-bold text-lg">{service.professional_name}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Skill:</span>
+                                <span className="text-gray-900 font-bold text-lg">{service.skill}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1">Experience:</span>
+                                <span className="text-gray-900 font-bold text-lg">{service.experience}</span>
+                            </div>
+                        </div>
                     </section>
 
                     <section className="bg-gray-50 rounded-2xl p-6 border border-gray-100">

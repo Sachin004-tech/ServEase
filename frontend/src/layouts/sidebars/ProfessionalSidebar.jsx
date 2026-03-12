@@ -24,8 +24,8 @@ const ProfessionalSidebar = () => {
             icon: MdDashboard,
         },
         {
-            name: "My Booking",
-            path: "/professionaldashboard/bookings",
+            name: "Booking",
+            path: "/professionaldashboard/professional-bookings",
             icon: MdBookOnline,
         },
         {

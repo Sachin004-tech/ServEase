@@ -11,7 +11,7 @@ const CategorySection = ({ title, subtitle, category, services }) => {
 
     const handleViewClick = () => {
         // Use the category prop directly as it's already a string like "Cleaning"
-        navigate(`/products?category=${category}`);
+        navigate(`/products?category=${encodeURIComponent(category)}`);
     };
 
     return (
