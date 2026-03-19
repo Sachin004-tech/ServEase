@@ -16,9 +16,11 @@ import SalonMenContent from "../components/home/categories/SalonMenContent";
 import ACRepairContent from "../components/home/categories/ACRepairContent";
 import ApplianceRepairContent from "../components/home/categories/ApplianceRepairContent";
 import PaintingContent from "../components/home/categories/PaintingContent";
+import HomeSkeleton from "../components/home/HomeSkeleton";
 
 const HomePage = () => {
   const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -28,10 +30,17 @@ const HomePage = () => {
         setServices(response);
       } catch (error) {
         console.error("Error fetching services:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchServices();
   }, []);
+
+  if (loading) {
+    return <HomeSkeleton />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Section: Sidebar and Banner */}
