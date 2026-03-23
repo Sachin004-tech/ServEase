@@ -978,23 +978,23 @@ def customer_dashboard(user_id):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Total bookings
+                                                                                                      # Total bookings
         cursor.execute("SELECT COUNT(*) AS total FROM bookings WHERE user_id=%s", (user_id,))
         total_bookings = cursor.fetchone()["total"]
 
-        # Completed bookings
+                                                                                                   # Completed bookings
         cursor.execute("SELECT COUNT(*) AS completed FROM bookings WHERE user_id=%s AND status='completed'", (user_id,))
         completed = cursor.fetchone()["completed"]
 
-        # Pending bookings
+                                                                                                # Pending bookings
         cursor.execute("SELECT COUNT(*) AS pending FROM bookings WHERE user_id=%s AND status='pending'", (user_id,))
         pending = cursor.fetchone()["pending"]
 
-        # Accepted bookings
+                                                                                             # Accepted bookings
         cursor.execute("SELECT COUNT(*) AS accepted FROM bookings WHERE user_id=%s AND status='accepted'", (user_id,))
         accepted = cursor.fetchone()["accepted"]
 
-        # Upcoming booking (next booking based on date & time)
+                                                                                             # Upcoming booking (next booking based on date & time)
         cursor.execute("""
             SELECT booking_id, service_name, booking_date, booking_time, status 
             FROM bookings
@@ -1004,7 +1004,7 @@ def customer_dashboard(user_id):
         """, (user_id,))
         upcoming = cursor.fetchone()
 
-        # Last booking (most recent)
+                                                                                         # Last booking
         cursor.execute("""
             SELECT booking_id, service_name, booking_date, booking_time, status 
             FROM bookings
@@ -1014,7 +1014,7 @@ def customer_dashboard(user_id):
         """, (user_id,))
         last_booking = cursor.fetchone()
 
-        # Convert datetime objects to string
+                                                                                         # Convert the datetime objects into the string format
         for b in [upcoming, last_booking]:
             if b:
                 b["booking_date"] = str(b["booking_date"])

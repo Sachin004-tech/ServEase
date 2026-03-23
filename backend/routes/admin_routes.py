@@ -7,7 +7,6 @@ admin_bp = Blueprint("admin", __name__)
 
 
 @admin_bp.route("/login", methods=["POST"])
-
 def admin_login():
     data = request.json or {}
     username = data.get("username")
@@ -38,12 +37,6 @@ def admin_login():
         "message":f"Welcome Admin {admin['username']}",
         "admin_id": admin["admin_id"]
     }),200
-
-
-
-
-
-
 
 #------------------------------------------------------PROFESSIONAL REQUEST CONTROL ------------------------------------
 @admin_bp.route("/professional/pending", methods=["GET"])   # admin can see the pending requests of professionals
@@ -167,6 +160,242 @@ ServEase Team
     finally:
         cursor.close()
         conn.close()
+
+#----------------------------------------MANAGED ALL SERVICES-----------------------------------------------------------
+
+###---------------------ALL CUSTOMER SERVICES
+@admin_bp.route("/users", methods=["GET"])
+def get_all_users():
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""SELECT user_id, name, email, phone, is_blocked FROM users""")
+        users = cursor.fetchall()
+
+        for user in users:
+            user["status"] = "blocked" if user["is_blocked"] ==1 else "active"
+
+        return jsonify({
+            "total_users":len(users),
+            "status": True,
+            "users":users
+        }),200
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/users/block/<int:user_id>", methods=["PUT"])
+def block_user(user_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE users
+            SET is_blocked=1
+            WHERE user_id=%s
+        """,(user_id,))
+
+        conn.commit()
+
+        if cursor.rowcount ==0:
+            return jsonify({"message" : "User not found"}),404
+
+        return jsonify({"message":"User blocked"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/users/unblock/<int:user_id>", methods=["PUT"])
+def unblock_user(user_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE users
+            SET is_blocked=0
+            WHERE user_id=%s
+        """,(user_id,))
+
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"message":"USer not found"}),404
+
+        return jsonify({"message":"User unblocked"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@admin_bp.route("/users/delete/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            DELETE FROM users
+            WHERE user_id=%s
+        """,(user_id,))
+
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"message":"USer not found"}),404
+
+        return jsonify({"message":"User deleted"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+###---------------------ALL PROFESSIONALS SERVICES
+@admin_bp.route("/professionals", methods=["GET"])
+def get_all_professionals():
+    conn = connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT professional_id, name, email, phone,
+                   skill, experience, status
+            FROM professionals
+        """)
+
+        data = cursor.fetchall()
+
+        for pro in data:
+            if pro["status"] == "approved":
+                pro["state"] = "active"
+            elif pro["status"] == "rejected":
+                pro["state"] = "blocked"
+            else:
+                pro["state"] = "pending"
+
+
+        return jsonify({
+            "total_professionals": len(data),
+            "status":True,
+            "professionals": data
+        }), 200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/professionals/block/<int:pro_id>", methods=["PUT"])
+def block_professional(pro_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE professionals
+            SET status='rejected'
+            WHERE professional_id=%s
+        """,(pro_id,))
+
+        conn.commit()
+        if cursor.rowcount ==0:
+            return jsonify({"message":"Professional not found"}),404
+
+        return jsonify({"message":"Professional blocked"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/professionals/unblock/<int:pro_id>", methods=["PUT"])
+def unblock_professional(pro_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE professionals
+            SET status='approved'
+            WHERE professional_id=%s
+        """,(pro_id,))
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"message":"Professional not found"}),404
+
+
+        return jsonify({"message":"Professional unblocked"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/professionals/delete/<int:pro_id>", methods=["DELETE"])
+def delete_professional(pro_id):
+
+    conn = connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            DELETE FROM professionals
+            WHERE professional_id=%s
+        """,(pro_id,))
+
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"message":"Professional not found"}),404
+
+
+        return jsonify({"message":"Professional deleted"}),200
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

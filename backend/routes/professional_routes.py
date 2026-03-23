@@ -115,6 +115,8 @@ def professional_login():
     cursor = conn.cursor(dictionary=True)
 
     try:
+
+
         cursor.execute("SELECT * FROM professionals WHERE email=%s", (email,))
         professional = cursor.fetchone()
 
@@ -364,7 +366,6 @@ def reset_password():
 def add_service(pro_id):
 
     data = request.get_json()
-
     service_name = data.get("service_name")
     category = data.get("category")
     description = data.get("description")
@@ -386,7 +387,8 @@ def add_service(pro_id):
         conn.commit()
 
         return jsonify({
-            "message": "Service added successfully"
+            "message": "Service added successfully",
+            "success":True
         }), 201
 
     finally:
