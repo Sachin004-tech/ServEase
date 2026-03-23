@@ -11,6 +11,7 @@ from config import SECRET_KEY
 import cloudinary.uploader
 import random
 from config import add_notification
+from datetime import timedelta
 
 
 
@@ -386,7 +387,8 @@ def add_service(pro_id):
         conn.commit()
 
         return jsonify({
-            "message": "Service added successfully"
+            "message": "Service added successfully",
+            "success": True
         }), 201
 
     finally:
@@ -511,6 +513,12 @@ def booking_request(professional_id):
                 """, (professional_id,))
 
         data = cursor.fetchall()
+
+        for row in data:
+            for key, value in row.items():
+                if isinstance(value, timedelta):
+                    row[key] = str(value)
+
         return jsonify(data), 200
 
     finally:
@@ -617,7 +625,7 @@ def reject_booking(professional_id, booking_id):
         # 2️⃣ Update status
         cursor.execute("""
             UPDATE bookings
-            SET status='rejected'
+            SET status='cancelled'
             WHERE booking_id=%s
             AND professional_id=%s
         """, (booking_id, professional_id))
@@ -659,6 +667,10 @@ def booking_detail(professional_id, booking_id):
 
         if not data:
             return jsonify({"message":"Booking not found"}),404
+
+        for key, value in data.items():
+            if isinstance(value, timedelta):
+                data[key] = str(value)
 
         return jsonify(data),200
 
