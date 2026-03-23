@@ -132,7 +132,7 @@ def customer_login():
             "user_id": user["user_id"],
             "email": user["email"],
             "role": "customer",
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
         }
 
         token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -500,7 +500,8 @@ def create_booking(user_id):
         )
 
         return jsonify({
-            "message": "Booking created successfully"
+            "message": "Booking created successfully",
+            "success": True
         }), 201
 
     finally:
@@ -530,7 +531,10 @@ def my_bookings(user_id):
                 if isinstance(value, (timedelta, time)):
                     row[key] = str(value)
 
-        return jsonify(data), 200
+        return jsonify({
+            "success": True,
+            "bookings": data
+        }), 200
     except Exception as e:
         return jsonify({"error":str(e)}),500
     finally:
@@ -558,7 +562,7 @@ def cancel_booking(user_id, booking_id):
 
         if not booking:
             return jsonify({
-                "message": "Cannot cancel booking"
+                "message": "Booking not found or already cancelled"
             }), 400
 
         # 2️⃣ Update booking status
@@ -602,7 +606,15 @@ def booking_details(user_id, booking_id):
         booking = cursor.fetchone()
         if not booking:
             return jsonify({"message":"Booking not found"}),404
-        return jsonify(booking),200
+        # FIX HERE
+        for key, value in booking.items():
+            if isinstance(value, (timedelta, time)):
+                booking[key] = str(value)
+
+        return jsonify({
+            "success": True,
+            "booking": booking
+        }), 200
     finally:
         cursor.close()
         conn.close()
@@ -646,7 +658,10 @@ def get_professional_details(user_id, booking_id):
                 "message":"Professional details available after acceptance only"
             }),403
 
-        return jsonify(data),200
+        return jsonify({
+            "success": True,
+            "data": data
+        }), 200
 
     finally:
         cursor.close()
@@ -684,6 +699,9 @@ def live_tracking(user_id, booking_id):
 
         if not booking:
             return jsonify({"message":"Booking not found"}),404
+
+        if booking.get("booking_time"):
+            booking["booking_time"] = str(booking["booking_time"])
 
         return jsonify(booking),200
 
