@@ -1,7 +1,19 @@
 import React from 'react';
 import { categories } from '../../data/categories';
+import { toast } from 'react-toastify';
 
 const HomeLeftBar = () => {
+    const handleCategoryClick = (title) => {
+        const id = title.toLowerCase().replace(/\s+/g, '-');
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+        else {
+            toast.info(`Service "${title}" is not available on this page.`);
+        }
+    };
+
     return (
         <div className="w-full md:w-5/12 bg-transparent border-0 border-black box-border flex basis-auto shrink-0 list-none m-0 min-h-0 min-w-0 p-0 relative no-underline z-0 flex-col justify-center md:sticky md:top-4">
             {/* Heading Section */}
@@ -21,6 +33,7 @@ const HomeLeftBar = () => {
                     {categories.map((service, index) => (
                         <div
                             key={index}
+                            onClick={() => handleCategoryClick(service.title)}
                             className="flex flex-col items-center justify-center p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-gray-50 hover:-translate-y-1 hover:shadow-md"
                         >
                             <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl md:text-3xl mb-3 shadow-inner">

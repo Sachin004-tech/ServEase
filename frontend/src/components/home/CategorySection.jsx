@@ -15,7 +15,7 @@ const CategorySection = ({ title, subtitle, category, services }) => {
     };
 
     return (
-        <section id={category.toLowerCase().replace(/\s+/g, '-')} className="bg-white py-20 px-4 md:px-8 border-t border-gray-100">
+        <section id={category.toLowerCase().replace(/\s+/g, '-')} className="bg-white py-20 px-4 md:px-8 border-t border-gray-100 scroll-mt-24">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-16 text-center">
                     <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
