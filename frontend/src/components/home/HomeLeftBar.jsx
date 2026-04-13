@@ -1,15 +1,5 @@
 import React from 'react';
-
-const services = [
-    { title: 'AC Repair', icon: '❄️' },
-    { title: 'Cleaning', icon: '🧹' },
-    { title: 'Plumbing', icon: '🔧' },
-    { title: 'Electrician', icon: '⚡' },
-    { title: 'Painting', icon: '🎨' },
-    { title: 'Pest Control', icon: '🐜' },
-    { title: 'Salon at Home', icon: '✂️' },
-    { title: 'Massage', icon: '💆' },
-];
+import { categories } from '../../data/categories';
 
 const HomeLeftBar = () => {
     return (
@@ -28,7 +18,7 @@ const HomeLeftBar = () => {
                 </h2>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {services.map((service, index) => (
+                    {categories.map((service, index) => (
                         <div
                             key={index}
                             className="flex flex-col items-center justify-center p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-gray-50 hover:-translate-y-1 hover:shadow-md"

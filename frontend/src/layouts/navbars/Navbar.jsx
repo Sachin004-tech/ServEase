@@ -14,6 +14,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import Modal from "../../components/modal/Modal";
 import RoleSelection from "../../components/RoleSelection";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import { categories } from "../../data/categories";
+import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -23,6 +25,11 @@ const Navbar = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [modalMode, setModalMode] = useState("signup");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const searchRef = useRef(null);
+  const mobileSearchRef = useRef(null);
 
   const { customerUser: user } = useSelector((state) => state.auth);
   const cartQuantity = useSelector((state) => state.cart?.quantity || 0);
@@ -38,10 +45,59 @@ const Navbar = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchDropdown(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleSearch = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (query.trim() === "") {
+      setFilteredCategories([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    const filtered = categories.filter(cat =>
+      cat.title.toLowerCase().includes(query.toLowerCase()) ||
+      cat.keywords.some(k => k.toLowerCase().includes(query.toLowerCase()))
+    );
+    setFilteredCategories(filtered);
+    setShowSearchDropdown(true);
+  };
+
+  const scrollToCategory = (catTitle) => {
+    const sectionId = catTitle.toLowerCase().replace(/\s+/g, '-');
+    const element = document.getElementById(sectionId);
+
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Add a small offset for the sticky navbar
+      const yOffset = -80;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    } else {
+      toast.info(`Service "${catTitle}" is not available on this page.`);
+      // Optional: navigate("/") to homepage if they want to scroll there
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (filteredCategories.length > 0) {
+        const firstMatch = filteredCategories[0];
+        setSearchQuery(firstMatch.title);
+        setShowSearchDropdown(false);
+        scrollToCategory(firstMatch.title);
+      } else if (searchQuery.trim() !== "") {
+        toast.error("No matching categories found.");
+      }
+    }
+  };
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -87,13 +143,42 @@ const Navbar = () => {
               className="w-full bg-transparent border-none text-sm font-medium text-black focus:outline-none placeholder:text-black"
             />
           </div>
-          <div className="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm">
+          <div className="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm relative" ref={searchRef}>
             <SearchIcon className="text-black h-5 w-5" />
             <input
               type="text"
               placeholder="Search for services (Plumber, Salon...)"
               className="w-full bg-transparent border-none text-sm font-medium text-black focus:outline-none placeholder:text-black"
+              value={searchQuery}
+              onChange={handleSearch}
+              onKeyDown={handleKeyDown}
+              onFocus={() => searchQuery.trim() !== "" && setShowSearchDropdown(true)}
             />
+
+            {showSearchDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[70] max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                {filteredCategories.length > 0 ? (
+                  filteredCategories.map((cat) => (
+                    <div
+                      key={cat.slug}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        setSearchQuery(cat.title);
+                        setShowSearchDropdown(false);
+                        scrollToCategory(cat.title);
+                      }}
+                    >
+                      <span className="text-xl">{cat.icon}</span>
+                      <span className="font-semibold text-gray-800">{cat.title}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center font-medium">
+                    No results found
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -255,13 +340,42 @@ const Navbar = () => {
                   className="w-full bg-transparent border-none text-sm font-medium text-black focus:outline-none placeholder:text-gray-400"
                 />
               </div>
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5">
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 relative">
                 <SearchIcon className="text-gray-400" fontSize="small" />
                 <input
                   type="text"
                   placeholder="Search services..."
                   className="w-full bg-transparent border-none text-sm font-medium text-black focus:outline-none placeholder:text-gray-400"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  onKeyDown={handleKeyDown}
                 />
+
+                {showSearchDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-[70] max-h-64 overflow-y-auto">
+                    {filteredCategories.length > 0 ? (
+                      filteredCategories.map((cat) => (
+                        <div
+                          key={cat.slug}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => {
+                            setSearchQuery(cat.title);
+                            setShowSearchDropdown(false);
+                            setMobileMenuOpen(false);
+                            scrollToCategory(cat.title);
+                          }}
+                        >
+                          <span>{cat.icon}</span>
+                          <span className="font-semibold">{cat.title}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        No results found
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
